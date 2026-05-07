@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>When Does a Use Case Need AI?</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:       #0A0A0F;
+      --surface:  #13131F;
+      --card:     #1A1A2E;
+      --gold:     #C9A96E;
+      --gold-lt:  #E8C97E;
+      --white:    #FFFFFF;
+      --grey:     #8A8A9A;
+      --grey-lt:  #B0B0C0;
+      --border:   #2A2A3E;
+      --green:    #2ECC71;
+      --blue:     #4A90D9;
+    }
+
+    html, body {
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--white);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    /* ── Layout ── */
+    .container {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 60px 32px 80px;
+    }
+
+    /* ── Header ── */
+    .header { text-align: center; margin-bottom: 64px; }
+
+    .header-eyebrow {
+      display: inline-block;
+      font-size: 11px; font-weight: 700; letter-spacing: 2.5px;
+      text-transform: uppercase; color: var(--gold);
+      background: rgba(201,169,110,0.1);
+      border: 1px solid rgba(201,169,110,0.25);
+      padding: 6px 16px; border-radius: 20px; margin-bottom: 20px;
+    }
+
+    .header h1 {
+      font-size: clamp(28px, 5vw, 48px);
+      font-weight: 800; line-height: 1.2;
+      letter-spacing: -0.5px;
+      margin-bottom: 16px;
+    }
+
+    .header h1 span { color: var(--gold); }
+
+    .header p {
+      font-size: 17px; color: var(--grey-lt);
+      max-width: 560px; margin: 0 auto; line-height: 1.6;
+    }
+
+    /* ── Section title ── */
+    .section-title {
+      font-size: 12px; font-weight: 700; letter-spacing: 2px;
+      text-transform: uppercase; color: var(--grey);
+      margin-bottom: 24px; padding-left: 4px;
+    }
+
+    /* ── Generic criteria grid ── */
+    .criteria-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 16px;
+      margin-bottom: 56px;
+    }
+
+    .criteria-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px;
+      transition: border-color 0.2s, transform 0.2s;
+      position: relative;
+      overflow: hidden;
+    }
+    .criteria-card::before {
+      content: '';
+      position: absolute; top: 0; left: 0; right: 0; height: 2px;
+      background: linear-gradient(90deg, var(--gold), transparent);
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+    .criteria-card:hover { border-color: rgba(201,169,110,0.35); transform: translateY(-2px); }
+    .criteria-card:hover::before { opacity: 1; }
+
+    .card-number {
+      font-size: 11px; font-weight: 700; color: var(--gold);
+      letter-spacing: 1px; margin-bottom: 10px;
+    }
+    .card-title {
+      font-size: 17px; font-weight: 700; margin-bottom: 8px; line-height: 1.3;
+    }
+    .card-body {
+      font-size: 14px; color: var(--grey-lt); line-height: 1.65;
+    }
+
+    /* ── Ops criteria — numbered list style ── */
+    .ops-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      margin-bottom: 56px;
+    }
+
+    .ops-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 22px 24px;
+      display: flex;
+      gap: 20px;
+      align-items: flex-start;
+      transition: border-color 0.2s;
+    }
+    .ops-card:hover { border-color: rgba(201,169,110,0.35); }
+
+    .ops-number {
+      width: 36px; height: 36px;
+      border-radius: 10px;
+      background: rgba(201,169,110,0.12);
+      border: 1px solid rgba(201,169,110,0.25);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 15px; font-weight: 800; color: var(--gold);
+      flex-shrink: 0; margin-top: 1px;
+    }
+
+    .ops-content { flex: 1; }
+    .ops-title {
+      font-size: 16px; font-weight: 700; margin-bottom: 6px;
+    }
+    .ops-title span {
+      display: inline-block;
+      font-size: 10px; font-weight: 700; padding: 2px 8px;
+      border-radius: 10px; margin-left: 8px; vertical-align: middle;
+      background: rgba(46,204,113,0.12); color: var(--green);
+      border: 1px solid rgba(46,204,113,0.25); letter-spacing: 0.5px;
+    }
+    .ops-body {
+      font-size: 14px; color: var(--grey-lt); line-height: 1.65;
+    }
+    .ops-body strong { color: var(--white); font-weight: 600; }
+
+    /* ── Divider ── */
+    .divider {
+      border: none; border-top: 1px solid var(--border);
+      margin: 56px 0;
+    }
+
+    /* ── Callout ── */
+    .callout {
+      background: linear-gradient(135deg, rgba(201,169,110,0.08), rgba(201,169,110,0.04));
+      border: 1px solid rgba(201,169,110,0.25);
+      border-radius: 16px;
+      padding: 28px 32px;
+      display: flex; gap: 16px; align-items: flex-start;
+    }
+    .callout-icon { font-size: 28px; flex-shrink: 0; margin-top: 2px; }
+    .callout-title { font-size: 15px; font-weight: 700; color: var(--gold-lt); margin-bottom: 6px; }
+    .callout-text { font-size: 14px; color: var(--grey-lt); line-height: 1.65; }
+    .callout-text strong { color: var(--white); }
+
+    /* ── Footer ── */
+    .footer {
+      text-align: center; margin-top: 72px;
+      font-size: 12px; color: var(--grey);
+      border-top: 1px solid var(--border); padding-top: 28px;
+    }
+
+    /* ── Responsive ── */
+    @media (max-width: 600px) {
+      .container { padding: 40px 20px 60px; }
+      .header { margin-bottom: 48px; }
+      .ops-card { flex-direction: column; gap: 12px; }
+      .callout { flex-direction: column; gap: 10px; }
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="header-eyebrow">AI Readiness Framework</div>
+    <h1>When Does a Use Case <span>Need AI?</span></h1>
+    <p>Two layers of validation — first check if the problem warrants AI at all, then validate if it fits Ops, Landscape, or Development work.</p>
+  </div>
+
+  <!-- Section 1: Generic criteria -->
+  <div class="section-title">Layer 1 — General Validation Criteria</div>
+  <div class="criteria-grid">
+
+    <div class="criteria-card">
+      <div class="card-number">01</div>
+      <div class="card-title">Pattern Complexity</div>
+      <div class="card-body">Can you write an <code style="background:var(--card);padding:1px 5px;border-radius:4px;font-size:12px">if/else</code> that covers it? If explicit rules break down, AI can learn the pattern. If rules work fine — you don't need AI.</div>
+    </div>
+
+    <div class="criteria-card">
+      <div class="card-number">02</div>
+      <div class="card-title">Input Variability</div>
+      <div class="card-body">Does the input arrive in unpredictable formats — natural language, images, voice, unstructured data? High variability is a strong signal. Structured, predictable input usually isn't a fit.</div>
+    </div>
+
+    <div class="criteria-card">
+      <div class="card-number">03</div>
+      <div class="card-title">Tolerance for Errors</div>
+      <div class="card-body">AI is probabilistic, not deterministic. If wrong answers cause serious harm or require 100% accuracy, AI needs a human-in-the-loop review layer — not blind automation.</div>
+    </div>
+
+    <div class="criteria-card">
+      <div class="card-number">04</div>
+      <div class="card-title">Data Availability</div>
+      <div class="card-body">Do you have enough examples of the problem and correct solutions to train, fine-tune, or prompt well? No data means poor results regardless of model quality.</div>
+    </div>
+
+    <div class="criteria-card">
+      <div class="card-number">05</div>
+      <div class="card-title">Cost vs. Value</div>
+      <div class="card-body">Does the compute cost and latency of AI justify the output? A lookup table that runs in 1ms shouldn't be replaced by an LLM call that costs money and takes 2 seconds.</div>
+    </div>
+
+  </div>
+
+  <hr class="divider" />
+
+  <!-- Section 2: Ops/Dev criteria -->
+  <div class="section-title">Layer 2 — Ops / Landscape / Development Scenarios</div>
+  <div class="ops-grid">
+
+    <div class="ops-card">
+      <div class="ops-number">1</div>
+      <div class="ops-content">
+        <div class="ops-title">Repetitive Diagnosis <span>OPS</span></div>
+        <div class="ops-body">Is someone manually reading logs, alerts, or error traces to find the <strong>same patterns repeatedly?</strong> If L1/L2 engineers run the same root-cause analysis over and over, AI can learn and automate that pattern recognition at scale.</div>
+      </div>
+    </div>
+
+    <div class="ops-card">
+      <div class="ops-number">2</div>
+      <div class="ops-content">
+        <div class="ops-title">High Signal, Low Action Ratio <span>OPS</span></div>
+        <div class="ops-body">Are people drowning in noise — hundreds of alerts, tickets, PRs — but <strong>only a small percentage needs real attention?</strong> AI is good at triaging and prioritising so humans focus only on what matters.</div>
+      </div>
+    </div>
+
+    <div class="ops-card">
+      <div class="ops-number">3</div>
+      <div class="ops-content">
+        <div class="ops-title">Tribal Knowledge Bottleneck <span>LANDSCAPE</span></div>
+        <div class="ops-body">Is critical knowledge <strong>locked in a few senior people's heads?</strong> If onboarding or troubleshooting depends on asking the right person, AI can surface that knowledge at scale — runbooks, code context, architecture decisions.</div>
+      </div>
+    </div>
+
+    <div class="ops-card">
+      <div class="ops-number">4</div>
+      <div class="ops-content">
+        <div class="ops-title">Cross-System Correlation <span>LANDSCAPE</span></div>
+        <div class="ops-body">Does solving the problem require <strong>connecting dots across multiple tools</strong> — Jira, GitHub, monitoring dashboards, deployment logs? Humans are slow at this; AI can correlate across sources instantly.</div>
+      </div>
+    </div>
+
+    <div class="ops-card">
+      <div class="ops-number">5</div>
+      <div class="ops-content">
+        <div class="ops-title">Time-Sensitive Decision Making <span>DEV</span></div>
+        <div class="ops-body">Is there a window where <strong>slow human response causes cascading failures</strong> — incident response, auto-scaling, deployment rollbacks? If speed matters and the decision logic is learnable, AI-assisted automation adds real value.</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Callout -->
+  <div class="callout">
+    <div class="callout-icon">💡</div>
+    <div>
+      <div class="callout-title">Quick Gut Check</div>
+      <div class="callout-text">If a <strong>smart intern could solve it in 10 minutes with a spreadsheet</strong>, you probably don't need AI. The real sweet spot: work that already exists, humans are doing it manually, it's repetitive or high-volume, and mistakes are costly.</div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">AI Readiness Framework &nbsp;·&nbsp; For internal use</div>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,1426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Readiness Scorer</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg:      #0A0A0F;
+      --surface: #13131F;
+      --card:    #1A1A2E;
+      --gold:    #C9A96E;
+      --gold-lt: #E8C97E;
+      --white:   #FFFFFF;
+      --grey:    #8A8A9A;
+      --grey-lt: #B0B0C0;
+      --border:  #2A2A3E;
+      --green:   #2ECC71;
+      --red:     #E74C3C;
+      --amber:   #F39C12;
+      --blue:    #4A90D9;
+    }
+    html, body { min-height: 100vh; background: var(--bg); color: var(--white); font-family: 'Inter', sans-serif; }
+    .container { max-width: 800px; margin: 0 auto; padding: 52px 28px 80px; }
+
+    /* ── Header ── */
+    .header { text-align: center; margin-bottom: 48px; }
+    .eyebrow {
+      display: inline-block; font-size: 11px; font-weight: 700; letter-spacing: 2px;
+      text-transform: uppercase; color: var(--gold);
+      background: rgba(201,169,110,0.1); border: 1px solid rgba(201,169,110,0.25);
+      padding: 5px 14px; border-radius: 20px; margin-bottom: 16px;
+    }
+    .header h1 { font-size: clamp(26px, 4vw, 40px); font-weight: 800; line-height: 1.2; margin-bottom: 12px; }
+    .header h1 span { color: var(--gold); }
+    .header p { font-size: 15px; color: var(--grey-lt); line-height: 1.65; max-width: 560px; margin: 0 auto; }
+
+    /* ── Section label ── */
+    .section-label {
+      font-size: 11px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase;
+      color: var(--grey); margin-bottom: 16px; padding-left: 2px;
+    }
+
+    /* ── Framework reference (two layers) ── */
+    .framework { margin-bottom: 48px; }
+    .framework-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    @media (max-width: 600px) { .framework-grid { grid-template-columns: 1fr; } }
+
+    .layer-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 16px; padding: 20px;
+    }
+    .layer-title {
+      font-size: 12px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase;
+      color: var(--gold); margin-bottom: 14px; display: flex; align-items: center; gap: 8px;
+    }
+    .layer-badge {
+      font-size: 9px; padding: 2px 7px; border-radius: 8px;
+      background: rgba(201,169,110,0.12); border: 1px solid rgba(201,169,110,0.2);
+      color: var(--gold-lt); font-weight: 700; letter-spacing: 1px;
+    }
+    .criteria-list { list-style: none; }
+    .criteria-list li {
+      display: flex; gap: 10px; align-items: flex-start;
+      padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 13px;
+    }
+    .criteria-list li:last-child { border-bottom: none; padding-bottom: 0; }
+    .ci-num {
+      width: 20px; height: 20px; border-radius: 6px; flex-shrink: 0;
+      background: rgba(201,169,110,0.1); color: var(--gold);
+      font-size: 10px; font-weight: 800; display: flex; align-items: center; justify-content: center;
+    }
+    .ci-body { flex: 1; }
+    .ci-name { font-weight: 600; color: var(--white); margin-bottom: 1px; }
+    .ci-desc { font-size: 11px; color: var(--grey); line-height: 1.4; }
+
+    /* ── Ops tags ── */
+    .ops-tag {
+      display: inline-block; font-size: 9px; font-weight: 700; padding: 1px 6px;
+      border-radius: 6px; margin-left: 6px; vertical-align: middle; letter-spacing: 0.5px;
+    }
+    .tag-ops    { background: rgba(46,204,113,0.12);  color: #2ECC71; border: 1px solid rgba(46,204,113,0.25); }
+    .tag-land   { background: rgba(74,144,217,0.12);  color: #4A90D9; border: 1px solid rgba(74,144,217,0.25); }
+    .tag-dev    { background: rgba(201,169,110,0.12); color: var(--gold); border: 1px solid rgba(201,169,110,0.25); }
+
+    /* ── Divider ── */
+    hr { border: none; border-top: 1px solid var(--border); margin: 44px 0; }
+
+    /* ── Input section ── */
+    .input-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 16px; padding: 24px; margin-bottom: 16px;
+    }
+    .field-label {
+      font-size: 11px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase;
+      color: var(--grey); margin-bottom: 8px; display: block;
+    }
+    .field-input {
+      width: 100%; background: var(--card); border: 1px solid var(--border);
+      border-radius: 10px; padding: 13px 15px; color: var(--white);
+      font-size: 15px; font-family: inherit; outline: none; margin-bottom: 18px;
+      transition: border-color 0.2s;
+    }
+    .field-input:focus { border-color: rgba(201,169,110,0.45); }
+    .field-input::placeholder { color: var(--grey); }
+    textarea.field-input { resize: vertical; min-height: 96px; line-height: 1.6; margin-bottom: 0; }
+
+    .eval-btn {
+      width: 100%; background: var(--gold); color: #000; border: none;
+      border-radius: 12px; padding: 15px; font-size: 15px; font-weight: 800;
+      cursor: pointer; font-family: inherit; transition: opacity 0.15s; margin-top: 18px;
+    }
+    .eval-btn:hover { opacity: 0.88; }
+
+    /* ── Clarify section ── */
+    #clarify-section { display: none; }
+    .clarify-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 16px; padding: 24px; margin-bottom: 16px;
+    }
+    .clarify-header { margin-bottom: 24px; }
+    .clarify-title { font-size: 18px; font-weight: 700; margin-bottom: 6px; }
+    .clarify-sub { font-size: 13px; color: var(--grey-lt); line-height: 1.55; }
+    .clarify-uc-name {
+      display: inline-block; background: rgba(201,169,110,0.1); border: 1px solid rgba(201,169,110,0.25);
+      color: var(--gold-lt); font-size: 13px; font-weight: 600; padding: 5px 12px;
+      border-radius: 8px; margin-top: 10px;
+    }
+
+    .q-block { margin-bottom: 24px; }
+    .q-block:last-of-type { margin-bottom: 0; }
+    .q-label {
+      font-size: 13px; font-weight: 700; color: var(--white); margin-bottom: 12px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .q-num {
+      width: 22px; height: 22px; border-radius: 7px; flex-shrink: 0;
+      background: rgba(201,169,110,0.12); border: 1px solid rgba(201,169,110,0.25);
+      color: var(--gold); font-size: 11px; font-weight: 800;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .chip-group { display: flex; flex-wrap: wrap; gap: 8px; }
+    .chip {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 20px; padding: 8px 14px; font-size: 13px; font-weight: 500;
+      color: var(--grey-lt); cursor: pointer; transition: all 0.15s; font-family: inherit;
+      user-select: none;
+    }
+    .chip:hover { border-color: rgba(201,169,110,0.4); color: var(--white); }
+    .chip.selected {
+      background: rgba(201,169,110,0.15); border-color: var(--gold);
+      color: var(--gold-lt); font-weight: 700;
+    }
+    .q-divider { border: none; border-top: 1px solid var(--border); margin: 20px 0 0; }
+
+    .clarify-actions { display: flex; gap: 12px; margin-top: 24px; }
+    .calc-btn {
+      flex: 1; background: var(--gold); color: #000; border: none;
+      border-radius: 12px; padding: 15px; font-size: 15px; font-weight: 800;
+      cursor: pointer; font-family: inherit; transition: opacity 0.15s;
+    }
+    .calc-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+    .calc-btn:not(:disabled):hover { opacity: 0.88; }
+    .back-btn {
+      background: none; border: 1px solid var(--border); border-radius: 12px;
+      padding: 15px 20px; font-size: 14px; font-weight: 600;
+      color: var(--grey-lt); cursor: pointer; font-family: inherit; transition: all 0.15s;
+    }
+    .back-btn:hover { border-color: var(--gold); color: var(--gold); }
+
+    /* ── Spinner ── */
+    .spinner-wrap { display: none; text-align: center; padding: 48px 0; }
+    .spinner-wrap.show { display: block; }
+    .spinner {
+      display: inline-block; width: 36px; height: 36px;
+      border: 3px solid var(--border); border-top-color: var(--gold);
+      border-radius: 50%; animation: spin 0.75s linear infinite; margin-bottom: 14px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spinner-text { color: var(--grey-lt); font-size: 14px; }
+
+    /* ── Result ── */
+    #result-section { display: none; }
+    #result-section.show { display: block; }
+
+    .score-hero {
+      border-radius: 20px; padding: 32px 28px; margin-bottom: 16px;
+      text-align: center; position: relative; overflow: hidden;
+    }
+    .score-hero::after {
+      content: ''; position: absolute; top: -50px; right: -50px;
+      width: 180px; height: 180px; border-radius: 50%; background: rgba(255,255,255,0.04);
+      pointer-events: none;
+    }
+    .sh-label { font-size: 11px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; opacity: 0.65; margin-bottom: 10px; }
+    .sh-score { font-size: 86px; font-weight: 800; line-height: 1; margin-bottom: 8px; }
+    .sh-verdict { font-size: 22px; font-weight: 700; margin-bottom: 8px; }
+    .sh-sub { font-size: 13px; opacity: 0.8; line-height: 1.6; max-width: 440px; margin: 0 auto 20px; }
+    .sh-bar-track { height: 6px; background: rgba(255,255,255,0.15); border-radius: 3px; overflow: hidden; max-width: 300px; margin: 0 auto; }
+    .sh-bar-fill { height: 100%; border-radius: 3px; width: 0%; transition: width 1s ease; }
+
+    /* ── Breakdown card ── */
+    .breakdown-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 16px; padding: 22px 24px; margin-bottom: 16px;
+    }
+    .bc-title { font-size: 11px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--grey); margin-bottom: 20px; }
+
+    .cr-row { margin-bottom: 18px; }
+    .cr-row:last-child { margin-bottom: 0; }
+    .cr-top { display: flex; align-items: center; gap: 10px; margin-bottom: 5px; }
+    .cr-name { font-size: 14px; font-weight: 600; flex: 1; }
+    .cr-badge {
+      font-size: 10px; font-weight: 700; padding: 3px 10px; border-radius: 10px; flex-shrink: 0;
+    }
+    .cr-bar-track { height: 5px; background: var(--border); border-radius: 3px; overflow: hidden; margin-bottom: 6px; }
+    .cr-bar-fill { height: 100%; border-radius: 3px; width: 0%; transition: width 0.9s ease; }
+    .cr-reason { font-size: 12px; color: var(--grey-lt); line-height: 1.55; }
+
+    /* ── Ops signals ── */
+    .signals-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 16px; padding: 22px 24px; margin-bottom: 16px;
+    }
+    .signals-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin-top: 4px; }
+    .signal-pill {
+      display: flex; align-items: center; gap: 8px;
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 10px; padding: 10px 12px; font-size: 12px;
+    }
+    .signal-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .signal-label { color: var(--grey-lt); flex: 1; }
+    .signal-val { font-weight: 700; font-size: 11px; }
+
+    /* ── Recommendation ── */
+    .rec-card {
+      border-radius: 14px; padding: 22px 24px; margin-bottom: 20px; border: 1px solid;
+    }
+    .rec-title { font-size: 14px; font-weight: 700; margin-bottom: 12px; }
+    .rec-list { list-style: none; }
+    .rec-list li {
+      display: flex; gap: 10px; align-items: flex-start;
+      font-size: 13px; color: var(--grey-lt); line-height: 1.55; margin-bottom: 8px;
+    }
+    .rec-list li:last-child { margin-bottom: 0; }
+    .rec-list li::before { content: '→'; flex-shrink: 0; font-weight: 700; }
+
+    /* ── Reset ── */
+    .reset-btn {
+      width: 100%; background: none; border: 1px solid var(--border);
+      border-radius: 12px; padding: 14px; font-size: 14px; font-weight: 600;
+      color: var(--grey-lt); cursor: pointer; font-family: inherit; transition: all 0.15s;
+    }
+    .reset-btn:hover { border-color: var(--gold); color: var(--gold); }
+
+    /* ── History ── */
+    #history-section { margin-top: 32px; }
+    .history-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 14px; cursor: pointer; user-select: none;
+    }
+    .history-header .section-label { margin-bottom: 0; }
+    .history-toggle {
+      font-size: 11px; font-weight: 700; color: var(--grey);
+      letter-spacing: 1px; text-transform: uppercase;
+    }
+    .history-list { display: flex; flex-direction: column; gap: 8px; }
+    .history-item {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 12px; padding: 14px 16px;
+      display: flex; align-items: center; gap: 12px;
+      cursor: pointer; transition: border-color 0.15s;
+    }
+    .history-item:hover { border-color: rgba(201,169,110,0.35); }
+    .h-score-badge {
+      width: 46px; height: 46px; border-radius: 10px; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; font-weight: 800;
+    }
+    .h-body { flex: 1; min-width: 0; }
+    .h-title { font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 3px; }
+    .h-meta { font-size: 11px; color: var(--grey); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .h-verdict-chip {
+      font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 6px;
+    }
+    .h-date { font-size: 11px; color: var(--grey); }
+    .history-empty { text-align: center; padding: 28px; color: var(--grey); font-size: 13px; }
+    .history-footer { text-align: right; margin-top: 10px; }
+    .clear-history-btn {
+      background: none; border: none; color: var(--grey); font-size: 12px;
+      cursor: pointer; font-family: inherit; padding: 4px 0;
+      text-decoration: underline; text-underline-offset: 3px;
+    }
+    .clear-history-btn:hover { color: var(--red); }
+
+    /* ── User chip ── */
+    .user-chip {
+      position: fixed; top: 16px; right: 20px; z-index: 100;
+      display: flex; align-items: center; gap: 8px;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 20px; padding: 6px 12px 6px 8px;
+      font-size: 12px; color: var(--grey-lt);
+    }
+    .user-avatar {
+      width: 22px; height: 22px; border-radius: 50%; flex-shrink: 0;
+      background: rgba(201,169,110,0.2); border: 1px solid rgba(201,169,110,0.35);
+      color: var(--gold); font-size: 10px; font-weight: 800;
+      display: flex; align-items: center; justify-content: center;
+    }
+
+    @media (max-width: 500px) {
+      .container { padding: 36px 16px 60px; }
+      .sh-score { font-size: 64px; }
+      .clarify-actions { flex-direction: column-reverse; }
+    }
+  </style>
+</head>
+<body>
+<div id="user-chip" class="user-chip" style="display:none">
+  <div class="user-avatar" id="user-avatar"></div>
+  <span id="user-name"></span>
+</div>
+<div class="container">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="eyebrow">AI Readiness Scorer</div>
+    <h1>Does Your Use Case <span>Need AI?</span></h1>
+    <p>Enter a title and description. Answer 4 quick questions. Get an instant readiness rating against the 2-layer framework below.</p>
+  </div>
+
+  <!-- Framework Reference -->
+  <div class="framework">
+    <div class="section-label">Evaluation Framework — 2 Layers</div>
+    <div class="framework-grid">
+
+      <!-- Layer 1 -->
+      <div class="layer-card">
+        <div class="layer-title">
+          Layer 1 — General Criteria
+          <span class="layer-badge">ALL USE CASES</span>
+        </div>
+        <ul class="criteria-list">
+          <li>
+            <div class="ci-num">1</div>
+            <div class="ci-body">
+              <div class="ci-name">Pattern Complexity</div>
+              <div class="ci-desc">Too complex or ambiguous to solve with explicit rules?</div>
+            </div>
+          </li>
+          <li>
+            <div class="ci-num">2</div>
+            <div class="ci-body">
+              <div class="ci-name">Input Variability</div>
+              <div class="ci-desc">Unstructured, freeform, or unpredictable input formats?</div>
+            </div>
+          </li>
+          <li>
+            <div class="ci-num">3</div>
+            <div class="ci-body">
+              <div class="ci-name">Error Tolerance</div>
+              <div class="ci-desc">Can the system survive occasional wrong answers safely?</div>
+            </div>
+          </li>
+          <li>
+            <div class="ci-num">4</div>
+            <div class="ci-body">
+              <div class="ci-name">Data Availability</div>
+              <div class="ci-desc">Enough historical data or examples to train / prompt well?</div>
+            </div>
+          </li>
+          <li>
+            <div class="ci-num">5</div>
+            <div class="ci-body">
+              <div class="ci-name">Cost vs. Value</div>
+              <div class="ci-desc">Does AI investment justify the outcome over simpler tools?</div>
+            </div>
+          </li>
+        </ul>
+      </div>
+
+      <!-- Layer 2 -->
+      <div class="layer-card">
+        <div class="layer-title">
+          Layer 2 — Ops / Dev Scenarios
+          <span class="layer-badge">TECH TEAMS</span>
+        </div>
+        <ul class="criteria-list">
+          <li>
+            <div class="ci-num">1</div>
+            <div class="ci-body">
+              <div class="ci-name">Repetitive Diagnosis <span class="ops-tag tag-ops">OPS</span></div>
+              <div class="ci-desc">Same root-cause analysis repeated manually by L1/L2 engineers?</div>
+            </div>
+          </li>
+          <li>
+            <div class="ci-num">2</div>
+            <div class="ci-body">
+              <div class="ci-name">High Signal, Low Action <span class="ops-tag tag-ops">OPS</span></div>
+              <div class="ci-desc">Drowning in alerts or tickets but only a few need real action?</div>
+            </div>
+          </li>
+          <li>
+            <div class="ci-num">3</div>
+            <div class="ci-body">
+              <div class="ci-name">Tribal Knowledge Bottleneck <span class="ops-tag tag-land">LANDSCAPE</span></div>
+              <div class="ci-desc">Critical knowledge locked in a few senior people's heads?</div>
+            </div>
+          </li>
+          <li>
+            <div class="ci-num">4</div>
+            <div class="ci-body">
+              <div class="ci-name">Cross-System Correlation <span class="ops-tag tag-land">LANDSCAPE</span></div>
+              <div class="ci-desc">Requires connecting dots across Jira, GitHub, logs, dashboards?</div>
+            </div>
+          </li>
+          <li>
+            <div class="ci-num">5</div>
+            <div class="ci-body">
+              <div class="ci-name">Time-Sensitive Decisions <span class="ops-tag tag-dev">DEV</span></div>
+              <div class="ci-desc">Slow response causes cascading failures — incidents, rollbacks?</div>
+            </div>
+          </li>
+        </ul>
+      </div>
+
+    </div>
+  </div>
+
+  <hr />
+
+  <!-- ── Step 1: Input ── -->
+  <div id="input-section">
+    <div class="section-label">Step 1 — Describe Your Use Case</div>
+    <div class="input-card">
+      <label class="field-label" for="uc-title">Use Case Title</label>
+      <input class="field-input" id="uc-title" type="text" placeholder="e.g. Auto-triage incoming support tickets by severity and team" />
+
+      <label class="field-label" for="uc-desc" style="margin-top:4px">Description</label>
+      <textarea class="field-input" id="uc-desc" placeholder="Describe what it does, what problem it solves, who does it today and how often, and what a wrong answer would cost…"></textarea>
+
+      <button class="eval-btn" onclick="goToClarify()">Next — Answer 4 Questions →</button>
+    </div>
+
+    <!-- History -->
+    <div id="history-section" style="display:none">
+      <div class="history-header" onclick="toggleHistory()">
+        <div class="section-label">Previous Evaluations</div>
+        <div class="history-toggle" id="history-toggle-label">▲ Hide</div>
+      </div>
+      <div id="history-list-wrap">
+        <div class="history-list" id="history-list"></div>
+        <div class="history-footer">
+          <button class="clear-history-btn" onclick="clearHistory()">Clear all history</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Step 2: Clarifying Questions ── -->
+  <div id="clarify-section">
+    <div class="section-label">Step 2 — A Few Quick Questions</div>
+    <div class="clarify-card">
+      <div class="clarify-header">
+        <div class="clarify-title">Help us score more accurately</div>
+        <div class="clarify-sub">A few targeted questions based on your description — no typing, just tap. Only asking what your description left unclear.</div>
+        <div class="clarify-uc-name" id="clarify-uc-display"></div>
+      </div>
+
+      <!-- Dynamically generated question blocks go here -->
+      <div id="clarify-questions-container"></div>
+
+      <div class="clarify-actions">
+        <button class="back-btn" onclick="goBackToInput()">← Back</button>
+        <button class="calc-btn" id="calc-btn" disabled onclick="runScoring()">Calculate Score →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Spinner -->
+  <div class="spinner-wrap" id="spinner">
+    <div class="spinner"></div>
+    <div class="spinner-text" id="spinner-text">Evaluating against both layers…</div>
+  </div>
+
+  <!-- Result -->
+  <div id="result-section">
+
+    <div class="score-hero" id="score-hero">
+      <div class="sh-label">AI Readiness Score</div>
+      <div class="sh-score" id="sh-score">—</div>
+      <div class="sh-verdict" id="sh-verdict"></div>
+      <div class="sh-sub" id="sh-sub"></div>
+      <div class="sh-bar-track"><div class="sh-bar-fill" id="sh-bar"></div></div>
+    </div>
+
+    <!-- Layer 1 breakdown -->
+    <div class="breakdown-card">
+      <div class="bc-title">Layer 1 — General Criteria Breakdown</div>
+      <div id="layer1-rows"></div>
+    </div>
+
+    <!-- Layer 2 signals -->
+    <div class="signals-card">
+      <div class="bc-title">Layer 2 — Ops / Dev Signal Detection</div>
+      <div class="signals-grid" id="layer2-signals"></div>
+    </div>
+
+    <!-- Recommendation -->
+    <div class="rec-card" id="rec-card">
+      <div class="rec-title" id="rec-title">Recommendation</div>
+      <ul class="rec-list" id="rec-list"></ul>
+    </div>
+
+    <button class="reset-btn" onclick="resetForm()">← Evaluate Another Use Case</button>
+  </div>
+
+</div>
+<script>
+/* ════════════════════════════════════════════════════════
+   DATA
+════════════════════════════════════════════════════════ */
+var L1 = [
+  { id:'complexity',  name:'Pattern Complexity',  desc:'Too complex for explicit rules?' },
+  { id:'variability', name:'Input Variability',   desc:'Unstructured or unpredictable input?' },
+  { id:'error_tol',   name:'Error Tolerance',     desc:'Can the system tolerate occasional errors?' },
+  { id:'data',        name:'Data Availability',   desc:'Enough data or examples to work with?' },
+  { id:'cost_val',    name:'Cost vs. Value',      desc:'Does AI effort justify the outcome?' },
+];
+
+var L2 = [
+  { id:'repetitive',  name:'Repetitive Diagnosis',       tag:'OPS',       tagClass:'tag-ops' },
+  { id:'signal_noise',name:'High Signal, Low Action',    tag:'OPS',       tagClass:'tag-ops' },
+  { id:'tribal',      name:'Tribal Knowledge Bottleneck',tag:'LANDSCAPE', tagClass:'tag-land' },
+  { id:'crosssys',    name:'Cross-System Correlation',   tag:'LANDSCAPE', tagClass:'tag-land' },
+  { id:'timesens',    name:'Time-Sensitive Decisions',   tag:'DEV',       tagClass:'tag-dev' },
+];
+
+/* Current answers state — keyed by criterion id */
+var currentAnswers = {};
+/* Generated questions for this evaluation */
+var currentQuestions = [];
+
+/* ════════════════════════════════════════════════════════
+   DYNAMIC QUESTION GENERATOR
+   Analyses the text, detects ambiguous criteria, picks
+   only the questions that would actually change the score.
+════════════════════════════════════════════════════════ */
+
+/* Question bank — one entry per criterion that can be clarified.
+   Each entry has: id, criterion, pick(text) → question object or null
+   pick() returns null if the text already makes it clear */
+/* Question bank — each entry analyses the text deeply and returns
+   a question + options tailored to what was actually described.
+   Returns null if the description already makes this criterion clear. */
+var QUESTION_BANK = [
+
+  /* ── Input Variability ── */
+  {
+    criterion: 'variability',
+    pick: function(t, title) {
+      // Clear signals — skip
+      if (/email|ticket|chat|freeform|natural language|feedback|conversation|voice|audio/.test(t)) return null;
+      if (/image|photo|screenshot|diagram|video/.test(t)) return null;
+      if (/structured.{0,15}database|relational.{0,10}table|fixed.{0,15}format|predefined.{0,10}field/.test(t) && !/migrat|legacy|heterogeneous/.test(t)) return null;
+
+      // Detect domain to phrase the question and options contextually
+      var isMigration  = /migrat|convert|replatform|port\b|porting/.test(t);
+      var isCode       = /code|script|ddl|sql|schema|query|config|yaml|json|xml/.test(t);
+      var isDoc        = /document|report|pdf|invoice|contract|note/.test(t);
+      var isAnalytics  = /report|dashboard|metric|kpi|data.{0,10}analy|insight/.test(t);
+      var isLog        = /log\b|log file|trace|event|alert|monitor/.test(t);
+
+      var q, opts;
+      if (isMigration && isCode) {
+        q = 'In this migration, how consistent is the source data or code structure across different objects?';
+        opts = [
+          { value: 'unstructured', label: 'Very inconsistent — each object is hand-crafted differently' },
+          { value: 'semi',         label: 'Mostly consistent with some exceptions and edge cases' },
+          { value: 'structured',   label: 'Highly uniform — same pattern repeated across all objects' },
+        ];
+      } else if (isMigration) {
+        q = 'What does the source data being migrated look like?';
+        opts = [
+          { value: 'unstructured', label: 'Messy — mixed formats, incomplete records, inconsistent naming' },
+          { value: 'semi',         label: 'Partially clean — mostly structured with gaps and exceptions' },
+          { value: 'structured',   label: 'Clean and well-defined — consistent schema throughout' },
+        ];
+      } else if (isLog) {
+        q = 'How predictable is the format of the logs or events being processed?';
+        opts = [
+          { value: 'unstructured', label: 'Freeform — varies by service, team, or version' },
+          { value: 'semi',         label: 'Semi-structured — common fields but lots of variation in message body' },
+          { value: 'structured',   label: 'Structured — consistent schema, easy to parse with rules' },
+        ];
+      } else if (isDoc) {
+        q = 'How standardised are the documents being processed?';
+        opts = [
+          { value: 'unstructured', label: 'No standard template — every document looks different' },
+          { value: 'semi',         label: 'Loose structure — same sections but content varies widely' },
+          { value: 'structured',   label: 'Templated — consistent layout and fields across all documents' },
+        ];
+      } else if (isAnalytics) {
+        q = 'Where does the data for this analysis come from?';
+        opts = [
+          { value: 'unstructured', label: 'Multiple sources with different formats — needs a lot of normalisation' },
+          { value: 'semi',         label: 'Mixed — some structured sources plus free text or manual inputs' },
+          { value: 'structured',   label: 'Clean data warehouse or structured DB — well-defined schema' },
+        ];
+      } else {
+        q = 'What does the input to this process actually look like?';
+        opts = [
+          { value: 'unstructured', label: 'Unstructured — free text, varying formats, hard to predict' },
+          { value: 'semi',         label: 'Semi-structured — common patterns but lots of variation' },
+          { value: 'structured',   label: 'Fully structured — consistent, predictable, well-defined' },
+          { value: 'mixed',        label: 'Mixed — depends on the source or case' },
+        ];
+      }
+      return { id: 'variability', question: q, options: opts };
+    }
+  },
+
+  /* ── Data Availability ── */
+  {
+    criterion: 'data',
+    pick: function(t, title) {
+      // Clear signals — skip
+      if (/years.of|months.of|large.{0,15}amount|rich|comprehensive|collected|labelled|annotated/.test(t)) return null;
+      if (/no.data|no.histor|no.example|greenfield|brand.new|first.time|lack.of.data/.test(t)) return null;
+
+      var isMigration = /migrat|convert|replatform/.test(t);
+      var hasSystem   = /hana|sap|oracle|postgres|mysql|sql.server|mongodb|snowflake|salesforce|existing.{0,15}system|legacy|erp|crm/.test(t);
+      var isOps       = /log\b|alert|incident|ticket|monitor|ops|support/.test(t);
+      var isCode      = /code|script|codebase|repository|github|repo/.test(t);
+
+      var q, opts;
+      if (isMigration && hasSystem) {
+        q = 'How well documented and accessible is the source system you\'re migrating from?';
+        opts = [
+          { value: 'lots',   label: 'Well documented — clear specs, examples, and technical details available' },
+          { value: 'some',   label: 'Partially — some docs exist but gaps need investigation' },
+          { value: 'little', label: 'Poorly documented — mostly tribal knowledge, reverse engineering needed' },
+          { value: 'none',   label: 'Unknown — we haven\'t assessed the source system yet' },
+        ];
+      } else if (isOps) {
+        q = 'How much historical data from this system — past incidents, tickets, or logs — is available?';
+        opts = [
+          { value: 'lots',   label: 'Plenty — months or years of data already stored and accessible' },
+          { value: 'some',   label: 'Some — a few weeks or months, enough to see patterns' },
+          { value: 'little', label: 'Very little — system is new or data was never retained' },
+          { value: 'none',   label: 'None — starting fresh with no history' },
+        ];
+      } else if (isCode) {
+        q = 'How much of the codebase is accessible and in a consistent enough state to analyse?';
+        opts = [
+          { value: 'lots',   label: 'Full access — entire codebase available in a repo with history' },
+          { value: 'some',   label: 'Partial — most of it available but some gaps or legacy black boxes' },
+          { value: 'little', label: 'Limited — fragmented across systems, hard to get a full picture' },
+          { value: 'none',   label: 'Barely accessible — no centralised repo or very incomplete' },
+        ];
+      } else if (hasSystem) {
+        q = 'How much usable data exists in the systems you\'re working with?';
+        opts = [
+          { value: 'lots',   label: 'A lot — clean, accessible records going back years' },
+          { value: 'some',   label: 'Some — usable data exists but needs cleaning or enriching' },
+          { value: 'little', label: 'Limited — data exists but it\'s scattered, messy, or incomplete' },
+          { value: 'none',   label: 'Very little — data hasn\'t been captured or isn\'t accessible' },
+        ];
+      } else {
+        q = 'How much existing data or examples of this process do you have?';
+        opts = [
+          { value: 'lots',   label: 'A lot — enough to train, fine-tune, or build solid prompts' },
+          { value: 'some',   label: 'Some — enough to get started and improve over time' },
+          { value: 'little', label: 'Very little — only a handful of examples' },
+          { value: 'none',   label: 'None — this process hasn\'t been done before' },
+        ];
+      }
+      return { id: 'data', question: q, options: opts };
+    }
+  },
+
+  /* ── Error Tolerance ── */
+  {
+    criterion: 'error_tol',
+    pick: function(t, title) {
+      // Clear signals — skip
+      if (/human.{0,25}review|human.{0,25}check|expert.{0,20}review|manual.{0,20}verify|oversight|validate|approve|confirm/.test(t)) return null;
+      if (/suggest|recommend|assist|draft|preview|proposal/.test(t)) return null;
+      if (/migrat|translat|convert|mapping/.test(t)) return null;
+      if (/payment|transaction|financial.{0,15}critical|medical.{0,15}diagnos|legal.{0,15}decision|safety.critical/.test(t)) return null;
+      if (/fully.automat|no.human|without.review|auto.{0,15}deploy/.test(t)) return null;
+
+      var isOps      = /incident|alert|deploy|rollback|outage|pager|on.call/.test(t);
+      var isData     = /data|record|database|report|dashboard/.test(t);
+      var isCustomer = /customer|user|client|end.user|external/.test(t);
+      var isProcess  = /workflow|process|approval|task|ticket/.test(t);
+
+      var q, opts;
+      if (isOps) {
+        q = 'If the AI takes the wrong action during an incident or deployment — what breaks?';
+        opts = [
+          { value: 'reviewed',  label: 'Nothing immediately — an engineer reviews before anything executes' },
+          { value: 'minor',     label: 'Minor disruption — easy to roll back or correct' },
+          { value: 'rework',    label: 'Significant recovery needed — could affect uptime or SLAs' },
+          { value: 'critical',  label: 'Serious outage risk — cascading failures possible' },
+        ];
+      } else if (isCustomer) {
+        q = 'What\'s the impact on customers if the AI gets it wrong?';
+        opts = [
+          { value: 'reviewed',  label: 'Zero — a human checks every output before it reaches the customer' },
+          { value: 'minor',     label: 'Small friction — customer notices but it\'s quickly fixed' },
+          { value: 'rework',    label: 'Noticeable impact — damages trust or creates support overhead' },
+          { value: 'critical',  label: 'Serious harm — financial, safety, or regulatory consequences' },
+        ];
+      } else if (isData) {
+        q = 'What happens downstream if the AI produces incorrect data or analysis?';
+        opts = [
+          { value: 'reviewed',  label: 'Reviewed before use — someone checks outputs before acting on them' },
+          { value: 'minor',     label: 'Small error — easy to spot and correct before it propagates' },
+          { value: 'rework',    label: 'Significant cleanup — wrong data could corrupt downstream systems' },
+          { value: 'critical',  label: 'High stakes — decisions or reports built on this data have major consequences' },
+        ];
+      } else {
+        q = 'If the AI produces a wrong output, what\'s the real-world consequence?';
+        opts = [
+          { value: 'reviewed',  label: 'None immediately — a person reviews every output before anything happens' },
+          { value: 'minor',     label: 'Minor — easy to catch and fix without significant impact' },
+          { value: 'rework',    label: 'Costly rework — takes time and effort to recover from' },
+          { value: 'critical',  label: 'Serious — financial loss, safety risk, legal exposure, or compliance issue' },
+        ];
+      }
+      return { id: 'error_tol', question: q, options: opts };
+    }
+  },
+
+  /* ── Cost vs. Value ── */
+  {
+    criterion: 'cost_val',
+    pick: function(t, title) {
+      // Clear signals — skip
+      if (/continuously|real.time|every.day|daily|hourly|each.{0,10}time/.test(t)) return null;
+      if (/\bonce\b|one.off|one.time|rare|occasional/.test(t)) return null;
+      if (/month|week|hour|day/.test(t) && /manual|currently|today|takes|spend|effort/.test(t)) return null;
+      if (/hundreds|thousands|at.scale|enterprise|large.{0,10}volume/.test(t)) return null;
+
+      var isMigration = /migrat|convert|replatform/.test(t);
+      var isOps       = /ops|incident|support|ticket|alert|monitor/.test(t);
+      var isDev       = /developer|engineer|code|deploy|build|pipeline/.test(t);
+      var isPeople    = /team|squad|department|multiple.{0,10}people|engineers/.test(t);
+
+      var q, opts;
+      if (isMigration) {
+        q = 'Is this a one-time migration or something that will be done repeatedly across systems?';
+        opts = [
+          { value: 'continuous', label: 'Repeated across many systems — same process runs dozens of times' },
+          { value: 'daily',      label: 'Multiple waves — a series of migrations over weeks or months' },
+          { value: 'weekly',     label: 'A handful of runs — limited scope' },
+          { value: 'oneoff',     label: 'Truly one-time — single migration, then done' },
+        ];
+      } else if (isOps) {
+        q = 'How frequently do the incidents, alerts, or support issues this addresses actually occur?';
+        opts = [
+          { value: 'continuous', label: 'Constantly — alerts and incidents are an ongoing daily stream' },
+          { value: 'daily',      label: 'Multiple times a day — happens regularly every working day' },
+          { value: 'weekly',     label: 'A few times a week' },
+          { value: 'rarely',     label: 'Infrequently — spikes occasionally but quiet most of the time' },
+        ];
+      } else if (isDev) {
+        q = 'How often do developers or teams encounter this problem in their workflow?';
+        opts = [
+          { value: 'continuous', label: 'Every PR, commit, or build — constant friction in the dev loop' },
+          { value: 'daily',      label: 'Daily — comes up in most working days' },
+          { value: 'weekly',     label: 'Weekly — part of sprint cycles or release processes' },
+          { value: 'rarely',     label: 'Occasionally — only shows up at certain milestones' },
+        ];
+      } else {
+        q = 'How often does this task need to happen?';
+        opts = [
+          { value: 'continuous', label: 'Continuously — running in real-time or triggered very frequently' },
+          { value: 'daily',      label: 'Daily — every working day' },
+          { value: 'weekly',     label: 'Weekly or a few times a month' },
+          { value: 'rarely',     label: 'A few times a year' },
+          { value: 'oneoff',     label: 'Just once' },
+        ];
+      }
+      return { id: 'cost_val', question: q, options: opts };
+    }
+  },
+
+  /* ── Pattern Complexity ── */
+  {
+    criterion: 'complexity',
+    pick: function(t, title) {
+      // Clear signals — skip
+      if (/complex|edge case|ambiguous|inconsistent|irregular|nuanc|diverse|varied|predict|forecast|anomal|sentiment|intent|generat/.test(t)) return null;
+      if (/analys|assess|evaluat|audit|classif|triage|diagnos/.test(t)) return null;
+      if (/\bsimple\b|\btrivial\b|\bstraightforward\b/.test(t)) return null;
+
+      var isMigration = /migrat|convert|replatform/.test(t);
+      var isOps       = /ops|monitor|alert|incident/.test(t);
+      var isSearch    = /search|find|lookup|retriev|match/.test(t);
+
+      var q, opts;
+      if (isMigration) {
+        q = 'How much judgment or case-by-case decision making is involved in this migration?';
+        opts = [
+          { value: 'impossible', label: 'A lot — every object needs interpretation, exceptions everywhere' },
+          { value: 'partial',    label: 'Some — standard cases are clear, but edge cases need reasoning' },
+          { value: 'mostly',     label: 'Mostly mechanical — clear mapping rules with occasional exceptions' },
+          { value: 'yes',        label: 'Fully mechanical — every transformation follows a fixed rule' },
+        ];
+      } else if (isSearch) {
+        q = 'How complex is the matching or retrieval logic?';
+        opts = [
+          { value: 'impossible', label: 'Very complex — needs to understand context, intent, or meaning' },
+          { value: 'partial',    label: 'Moderate — keyword matching misses important cases' },
+          { value: 'mostly',     label: 'Mostly simple — basic search works but misses edge cases' },
+          { value: 'yes',        label: 'Simple lookup — exact match or filter on known fields' },
+        ];
+      } else {
+        q = 'How much judgment or interpretation does this task require?';
+        opts = [
+          { value: 'impossible', label: 'A lot — outcomes depend on context, exceptions, or implicit knowledge' },
+          { value: 'partial',    label: 'Some — clear patterns exist but edge cases need human-like reasoning' },
+          { value: 'mostly',     label: 'Moderate — mostly predictable with occasional judgment calls' },
+          { value: 'yes',        label: 'Very little — the logic is straightforward and explicit' },
+        ];
+      }
+      return { id: 'complexity', question: q, options: opts };
+    }
+  },
+
+];
+
+/* ════════════════════════════════════════════════════════
+   STEP 1 → STEP 2: generate and show clarifying questions
+════════════════════════════════════════════════════════ */
+function goToClarify() {
+  var title = document.getElementById('uc-title').value.trim();
+  var desc  = document.getElementById('uc-desc').value.trim();
+  if (!title && !desc) { alert('Please enter a title or description first.'); return; }
+
+  var combined = (title + ' ' + desc).toLowerCase();
+
+  // Generate only the questions that are needed
+  currentQuestions = [];
+  currentAnswers = {};
+  for (var i = 0; i < QUESTION_BANK.length; i++) {
+    var q = QUESTION_BANK[i].pick(combined, title.toLowerCase());
+    if (q) currentQuestions.push(q);
+    if (currentQuestions.length >= 4) break; // cap at 4
+  }
+
+  // If nothing is ambiguous — skip straight to scoring
+  if (currentQuestions.length === 0) {
+    document.getElementById('input-section').style.display = 'none';
+    runScoring();
+    return;
+  }
+
+  // Show use case name in questions header
+  document.getElementById('clarify-uc-display').textContent = title || desc.substring(0, 60) + '…';
+
+  // Build questions HTML dynamically
+  renderClarifyQuestions();
+
+  document.getElementById('input-section').style.display = 'none';
+  document.getElementById('clarify-section').style.display = 'block';
+  // Update section label with question count
+  var label = document.querySelector('#clarify-section .section-label');
+  if (label) label.textContent = 'Step 2 — ' + currentQuestions.length + ' Quick Question' + (currentQuestions.length === 1 ? '' : 's');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function renderClarifyQuestions() {
+  var container = document.getElementById('clarify-questions-container');
+  var html = '';
+  for (var i = 0; i < currentQuestions.length; i++) {
+    var q = currentQuestions[i];
+    var qNum = i + 1;
+    var isLast = (i === currentQuestions.length - 1);
+    html += '<div class="q-block">' +
+      '<div class="q-label"><div class="q-num">' + qNum + '</div>' + escHtml(q.question) + '</div>' +
+      '<div class="chip-group" id="q-' + q.id + '-chips">';
+    for (var j = 0; j < q.options.length; j++) {
+      var opt = q.options[j];
+      html += '<button class="chip" onclick="selectChip(\'' + q.id + '\',\'' + opt.value + '\',this)">' + escHtml(opt.label) + '</button>';
+    }
+    html += '</div></div>';
+    if (!isLast) html += '<hr class="q-divider" style="margin-top:20px" />';
+  }
+  container.innerHTML = html;
+  // Add top margin to q-blocks after first
+  var blocks = container.querySelectorAll('.q-block');
+  for (var b = 1; b < blocks.length; b++) blocks[b].style.marginTop = '20px';
+}
+
+function goBackToInput() {
+  document.getElementById('clarify-section').style.display = 'none';
+  document.getElementById('input-section').style.display = 'block';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+/* ════════════════════════════════════════════════════════
+   CHIP SELECTION
+════════════════════════════════════════════════════════ */
+function selectChip(criterionId, value, el) {
+  var group = document.getElementById('q-' + criterionId + '-chips');
+  var chips = group.querySelectorAll('.chip');
+  for (var i = 0; i < chips.length; i++) chips[i].classList.remove('selected');
+  el.classList.add('selected');
+  currentAnswers[criterionId] = value;
+  updateCalcBtn();
+}
+
+function updateCalcBtn() {
+  var answered = 0;
+  for (var i = 0; i < currentQuestions.length; i++) {
+    if (currentAnswers[currentQuestions[i].id]) answered++;
+  }
+  document.getElementById('calc-btn').disabled = (answered < currentQuestions.length);
+}
+
+/* ════════════════════════════════════════════════════════
+   SCORE LAYER 1 — heuristics + answer overrides
+   Core principle: start neutral (2/4), apply positive AND
+   negative signals, then apply answer overrides
+════════════════════════════════════════════════════════ */
+function scoreL1(text, answers) {
+  var t = text.toLowerCase();
+  var scores = {};
+  var ans = answers || {};
+
+  // ── 1. Pattern Complexity ──────────────────────────────
+  var c = 2;
+  if (/migrat|transform|convert|map\b|mapping|rewrite|refactor|translat|port\b|porting/.test(t)) c += 1;
+  if (/analys|assess|evaluat|review|audit|inspect|scan|detect|identif|classif|categori|triage|prioriti/.test(t)) c += 1;
+  if (/understand|interpret|reason|infer|recommend|suggest|decide|judg|optimis|optimiz/.test(t)) c += 1;
+  if (/predict|forecast|anomal|pattern|sentiment|intent|extract|summar|generat|cluster|segment/.test(t)) c += 1;
+  if (/complex|edge case|exception|ambiguous|varied|diverse|inconsistent|irregular|nuanc|context|depend/.test(t)) c += 1;
+  if (/month|week|hour|day|manual.{0,20}effort|takes.{0,20}long|time.consum|tedious|expert/.test(t)) c += 1;
+  if (/\bsimple\b|\btrivial\b|\bstraightforward\b/.test(t)) c -= 2;
+  if (/fixed.{0,15}rule|lookup.{0,15}table|if.{0,10}then|threshold.{0,10}check|flag\b/.test(t)) c -= 2;
+  // Answer override
+  if (ans.complexity === 'impossible') c = Math.max(c, 4);
+  else if (ans.complexity === 'partial')   c = Math.max(c, 3);
+  else if (ans.complexity === 'mostly')    c = Math.max(c, 2);
+  else if (ans.complexity === 'yes')       c = Math.min(c, 1);
+  scores.complexity = Math.min(4, Math.max(0, c));
+
+  // ── 2. Input Variability ───────────────────────────────
+  var v = 2;
+  if (/email|ticket|chat|message|freeform|natural language|feedback|review|comment|description|conversation|voice|audio/.test(t)) v += 2;
+  if (/document|report|\btext\b|note|pdf|invoice|contract|handwritten|scan|ocr|receipt/.test(t)) v += 1;
+  if (/image|photo|screenshot|diagram|chart|video/.test(t)) v += 1;
+  if (/schema|code|script|query|config|log\b|ddl|sql|xml|json|yaml/.test(t)) v += 1;
+  if (/migrat|legacy|heterogeneous|multiple.{0,15}format|different.{0,15}version|varied.{0,15}struct/.test(t)) v += 1;
+  if (/fixed.{0,15}format|standard.{0,15}schema|well.defined|predefined.{0,10}field|form.{0,10}field|dropdown/.test(t)) v -= 2;
+  if (/\bcsv\b|\bapi\b.{0,20}call|structured.{0,15}database|relational.{0,10}table/.test(t)) v -= 1;
+  // Answer override
+  if (ans.variability === 'unstructured') v = Math.max(v, 3);
+  else if (ans.variability === 'mixed')   v = Math.max(v, 3);
+  else if (ans.variability === 'semi')    v = Math.max(v, 2);
+  else if (ans.variability === 'structured') v = Math.min(v, 2);
+  scores.variability = Math.min(4, Math.max(0, v));
+
+  // ── 3. Error Tolerance ─────────────────────────────────
+  var e = 2;
+  if (/suggest|recommend|assist|draft|preview|proposal|hint|guide|second.opinion|help.{0,10}team|support.{0,10}team/.test(t)) e += 1;
+  if (/human.{0,25}review|human.{0,25}check|expert.{0,20}review|manual.{0,20}verify|oversight|validate|approve|confirm/.test(t)) e += 1;
+  if (/migrat|translat|convert|mapping/.test(t)) e += 1;
+  if (/fully.automat|no.human|without.review|instant.{0,15}action|auto.{0,15}deploy|auto.{0,15}execute/.test(t)) e -= 2;
+  if (/payment|transaction|financial.{0,15}critical|medical.{0,15}diagnos|legal.{0,15}decision|safety.critical/.test(t)) e -= 2;
+  // Answer override
+  if (ans.error_tol === 'reviewed')  e = Math.max(e, 4);
+  else if (ans.error_tol === 'minor')    e = Math.max(e, 3);
+  else if (ans.error_tol === 'rework')   e = Math.max(e, 2);
+  else if (ans.error_tol === 'critical') e = Math.min(e, 1);
+  scores.error_tol = Math.min(4, Math.max(0, e));
+
+  // ── 4. Data Availability ───────────────────────────────
+  var d = 2;
+  if (/existing|current.{0,15}system|legacy|database|schema|table|record|histor|previous|archiv|stored|log\b|dataset/.test(t)) d += 1;
+  if (/years.of|months.of|large.{0,15}amount|rich|comprehensive|collected|labelled|annotated|sample|example/.test(t)) d += 1;
+  if (/hana|sap|oracle|postgres|mysql|sql.server|mongodb|snowflake|redshift/.test(t)) d += 1;
+  if (/source.{0,15}system|target.{0,15}system|on.prem|cloud|migrat/.test(t)) d += 1;
+  if (/no.data|no.histor|no.example|greenfield|brand.new|first.time|don.t.have.data|lack.of.data/.test(t)) d -= 3;
+  // Answer override
+  if (ans.data === 'lots')   d = Math.max(d, 4);
+  else if (ans.data === 'some')   d = Math.max(d, 3);
+  else if (ans.data === 'little') d = Math.max(d, 1);
+  else if (ans.data === 'none')   d = Math.min(d, 1);
+  scores.data = Math.min(4, Math.max(0, d));
+
+  // ── 5. Cost vs. Value ──────────────────────────────────
+  var cv = 2;
+  if (/month|week|hour|day/.test(t) && /manual|currently|today|takes|spend|effort/.test(t)) cv += 2;
+  if (/few.hours|hours.instead|days.instead|weeks.instead|fraction.of.time|10x|100x|significant.time/.test(t)) cv += 2;
+  if (/bottleneck|slow|expensive|costly|resource.intensive|time.consum|tedious|painful|error.prone/.test(t)) cv += 1;
+  if (/team|squad|multiple.{0,10}people|department|engineers|consultants|specialist/.test(t)) cv += 1;
+  if (/scale|at.scale|many.{0,10}system|hundreds|thousands|large.{0,10}number|enterprise/.test(t)) cv += 1;
+  if (/migrat|transform|moderniz|upgrad|replatform/.test(t)) cv += 1;
+  if (/\bonce\b|rare|one.off|minor|trivial|quick.fix|small.change/.test(t)) cv -= 2;
+  // Answer override
+  if (ans.cost_val === 'continuous') cv = Math.max(cv, 4);
+  else if (ans.cost_val === 'daily')      cv = Math.max(cv, 3);
+  else if (ans.cost_val === 'weekly')     cv = Math.max(cv, 2);
+  else if (ans.cost_val === 'rarely')     cv = Math.min(cv, 2);
+  else if (ans.cost_val === 'oneoff')     cv = Math.min(cv, 1);
+  scores.cost_val = Math.min(4, Math.max(0, cv));
+
+  return scores;
+}
+
+/* ════════════════════════════════════════════════════════
+   DETECT LAYER 2 SIGNALS
+════════════════════════════════════════════════════════ */
+function detectL2(text) {
+  var t = text.toLowerCase();
+  return {
+    repetitive: /repeat|recurring|same.{0,25}again|manual.{0,20}every|each.{0,15}time|done.{0,10}manually|over.and.over|every.{0,10}migrat|every.{0,10}project|same.steps|template|standard.process|root.cause|l1\b|l2\b|on.call|ops.team|support.eng/.test(t),
+    signal_noise: /too.many|overwhelm|flood|noise|hundreds|thousands|alert|ticket|false.positive|low.signal|triage|prioriti|backlog|queue|filter.{0,15}relevant|sort.through/.test(t),
+    tribal: /expert|specialist|senior|consultant|only.{0,15}know|depends.on|rely.on|experience|institutional|undocumented|not.documented|knowledge.{0,10}transfer|onboard|tribal|key.person|single.person|few.people.know|hard.to.find/.test(t),
+    crosssys: /multiple.{0,15}system|cross.{0,10}system|different.{0,15}tool|different.{0,15}source|jira|github|confluence|splunk|datadog|grafana|correlat|connect.{0,10}dot|end.to.end|source.and.target|source.system|target.system|integrat|interface|dependency|landscape/.test(t),
+    timesens: /incident|outage|downtime|rollback|cascade|sla|real.time|immediate|within.{0,15}minute|within.{0,15}hour|fast.{0,10}response|auto.heal|pager|critical.window|time.critical|deadline|go.live/.test(t),
+  };
+}
+
+/* ════════════════════════════════════════════════════════
+   CRITERION LABELS & REASONING
+════════════════════════════════════════════════════════ */
+function crLabel(s) {
+  if (s >= 4) return 'Very Strong';
+  if (s === 3) return 'Strong';
+  if (s === 2) return 'Moderate';
+  if (s === 1) return 'Weak';
+  return 'Very Weak';
+}
+
+function crColor(s) {
+  if (s >= 3) return { bg:'rgba(46,204,113,0.15)',  text:'#2ECC71', bar:'#2ECC71' };
+  if (s === 2) return { bg:'rgba(243,156,18,0.15)',  text:'#F39C12', bar:'#F39C12' };
+  return           { bg:'rgba(231,76,60,0.15)',      text:'#E74C3C', bar:'#E74C3C' };
+}
+
+var REASONS = {
+  complexity: [
+    'Looks straightforward — the logic seems explicit and predictable.',
+    'Some complexity, but the patterns are consistent enough to handle deterministically.',
+    'Enough complexity that rules will struggle at the edges — AI can help.',
+    'High complexity with many patterns — AI will significantly outperform rules.',
+    'Very high complexity or ambiguity — this is exactly the problem AI is built for.',
+  ],
+  variability: [
+    'Input appears structured and predictable — AI adds little value here.',
+    'Mostly structured with minor variation — rules can still handle this.',
+    'Mixed input types detected — AI can normalise and interpret the variability.',
+    'Unstructured or highly variable input — strong signal for AI fit.',
+    'Highly unstructured input (text, docs, images) — AI is well suited.',
+  ],
+  error_tol: [
+    'High-stakes or critical decisions detected — AI errors could cause serious harm.',
+    'Some risk present — AI should only be used with mandatory human review.',
+    'Moderate tolerance — AI with a human review layer is a viable approach.',
+    'Good tolerance — suggestions or drafts reviewed by humans carry low risk.',
+    'Human oversight in place — AI errors are easily caught and corrected.',
+  ],
+  data: [
+    'No data signals found — lack of training data is a serious blocker.',
+    'Limited data signals — unclear if enough examples exist to start.',
+    'Some historical data likely present — enough to begin prompting or fine-tuning.',
+    'Good data availability — historical records or examples appear accessible.',
+    'Strong data signals — rich, existing data makes AI highly feasible.',
+  ],
+  cost_val: [
+    'Appears rare or minor — AI overhead likely outweighs the benefit.',
+    'Modest value signal — ROI case needs strengthening before committing.',
+    'Reasonable value — task appears frequent or impactful enough to justify AI.',
+    'Strong value signal — volume, frequency, or team impact supports investment.',
+    'Very high value potential — this is a major manual bottleneck at scale.',
+  ],
+};
+
+/* ════════════════════════════════════════════════════════
+   STEP 2 → SCORING
+════════════════════════════════════════════════════════ */
+function runScoring() {
+  var title = document.getElementById('uc-title').value.trim();
+  var desc  = document.getElementById('uc-desc').value.trim();
+  var combined = title + ' ' + desc;
+
+  document.getElementById('clarify-section').style.display = 'none';
+  document.getElementById('spinner').classList.add('show');
+  document.getElementById('result-section').style.display = 'none';
+  document.getElementById('spinner-text').textContent = 'Calculating your AI readiness score…';
+
+  setTimeout(function() {
+    try {
+      var l1 = scoreL1(combined, currentAnswers);
+      var l2 = detectL2(combined);
+
+      var l1Total = 0;
+      for (var k in l1) l1Total += l1[k];
+      var l1Max   = L1.length * 4;
+      var l1Pct   = l1Total / l1Max;
+
+      var l2Count = 0;
+      for (var k2 in l2) { if (l2[k2]) l2Count++; }
+      var l2Bonus = l2Count / L2.length;
+
+      var finalPct = Math.round((l1Pct * 0.70 + l2Bonus * 0.30) * 100);
+
+      var verdict, sub, heroBg, barColor, recBg, recBorder, recColor, bullets;
+      if (finalPct >= 72) {
+        verdict  = 'Strong AI Candidate';
+        sub      = 'This use case scores well across both layers. Complexity, data, and operational signals all point to clear AI value.';
+        heroBg   = 'linear-gradient(135deg, #1B5E20, #2E7D32)';
+        barColor = '#2ECC71';
+        recBg = 'rgba(46,204,113,0.07)'; recBorder = 'rgba(46,204,113,0.3)'; recColor = '#2ECC71';
+        bullets = [
+          'Start with a focused POC on the highest-volume sub-task',
+          'Define success metrics before writing any code',
+          'Plan a human-in-the-loop review layer for the first 90 days',
+          'Invest in data quality — a clean pipeline matters more than model choice',
+          'Instrument everything from day one so you can measure actual improvement',
+        ];
+      } else if (finalPct >= 50) {
+        verdict  = 'Good Candidate — Proceed with Care';
+        sub      = 'AI can add real value here, but gaps exist. A scoped pilot with human oversight is the right next step before full commitment.';
+        heroBg   = 'linear-gradient(135deg, #BF6B00, #E68A00)';
+        barColor = '#F39C12';
+        recBg = 'rgba(243,156,18,0.07)'; recBorder = 'rgba(243,156,18,0.3)'; recColor = '#F39C12';
+        bullets = [
+          'Scope the pilot tightly — avoid automating everything in one go',
+          'Keep humans in the loop for any low-confidence or edge-case outputs',
+          'Address data gaps before committing to a full build',
+          'Set a clear go/no-go checkpoint after 60 days of pilot data',
+          'Document failure modes early so you know what to watch for in production',
+        ];
+      } else if (finalPct >= 30) {
+        verdict  = 'Weak Fit — Revisit the Problem First';
+        sub      = 'The signals here are mixed. The use case may benefit from more definition, better data, or a tighter scope before AI makes sense.';
+        heroBg   = 'linear-gradient(135deg, #1A237E, #3949AB)';
+        barColor = '#4A90D9';
+        recBg = 'rgba(74,144,217,0.07)'; recBorder = 'rgba(74,144,217,0.3)'; recColor = '#7EC8E3';
+        bullets = [
+          'Narrow the scope — pick the highest-pain sub-problem and validate AI on that first',
+          'Strengthen the data story — AI without good data produces confident wrong answers',
+          'Define what a successful output looks like before choosing any approach',
+          'If the problem is well-understood and repetitive, a targeted workflow tool may deliver faster',
+          'Come back to AI once the problem is better defined and data is in place',
+        ];
+      } else {
+        verdict  = 'Not Ready Yet';
+        sub      = 'Key ingredients are missing. Jumping to AI now risks building something expensive that solves the wrong problem.';
+        heroBg   = 'linear-gradient(135deg, #4A148C, #6A1B9A)';
+        barColor = '#CE93D8';
+        recBg = 'rgba(106,27,154,0.07)'; recBorder = 'rgba(106,27,154,0.3)'; recColor = '#CE93D8';
+        bullets = [
+          'Map out the process end-to-end first — you can\'t automate what you don\'t fully understand',
+          'Identify where the real pain is — the problem as stated may be too broad or too vague',
+          'Start capturing data now — even informal logs or records will matter later',
+          'Define the success criteria clearly — what does "working" actually look like?',
+          'Revisit once you have 3–6 months of data and a clear problem statement',
+        ];
+      }
+
+      // Save to history
+      saveHistory({
+        id: Date.now(),
+        title: title || desc.substring(0, 60),
+        description: desc,
+        answers: currentAnswers,
+        finalPct: finalPct,
+        verdict: verdict,
+        heroBg: heroBg,
+        barColor: barColor,
+        recBg: recBg, recBorder: recBorder, recColor: recColor,
+        l1: l1, l2: l2, bullets: bullets, sub: sub,
+        savedAt: new Date().toISOString(),
+      });
+
+      renderResults(finalPct, verdict, sub, heroBg, barColor, recBg, recBorder, recColor, bullets, l1, l2);
+
+    } catch(err) {
+      document.getElementById('spinner').classList.remove('show');
+      document.getElementById('clarify-section').style.display = 'block';
+      alert('Something went wrong: ' + err.message);
+    }
+  }, 900);
+}
+
+/* ════════════════════════════════════════════════════════
+   RENDER RESULTS
+════════════════════════════════════════════════════════ */
+function renderResults(finalPct, verdict, sub, heroBg, barColor, recBg, recBorder, recColor, bullets, l1, l2) {
+  document.getElementById('score-hero').style.background = heroBg;
+  document.getElementById('sh-score').textContent = finalPct + '%';
+  document.getElementById('sh-verdict').textContent = verdict;
+  document.getElementById('sh-sub').textContent = sub;
+
+  // Layer 1 rows
+  var l1Html = '';
+  for (var i = 0; i < L1.length; i++) {
+    var crit = L1[i];
+    var s   = l1[crit.id];
+    var col = crColor(s);
+    var lbl = crLabel(s);
+    var rsn = REASONS[crit.id][Math.min(s, 4)];
+    l1Html += '<div class="cr-row">' +
+      '<div class="cr-top">' +
+        '<div class="cr-name">' + crit.name + '</div>' +
+        '<span class="cr-badge" style="background:' + col.bg + ';color:' + col.text + '">' + lbl + ' · ' + s + '/4</span>' +
+      '</div>' +
+      '<div class="cr-bar-track"><div class="cr-bar-fill" data-w="' + (s*25) + '" style="background:' + col.bar + '"></div></div>' +
+      '<div class="cr-reason">' + rsn + '</div>' +
+    '</div>';
+  }
+  document.getElementById('layer1-rows').innerHTML = l1Html;
+
+  // Layer 2 signals
+  var l2Html = '';
+  for (var j = 0; j < L2.length; j++) {
+    var sig = L2[j];
+    var detected = l2[sig.id];
+    var dot  = detected ? '#2ECC71' : '#3A3A4E';
+    var valC = detected ? '#2ECC71' : 'var(--grey)';
+    var val  = detected ? 'Detected' : 'Not detected';
+    l2Html += '<div class="signal-pill">' +
+      '<div class="signal-dot" style="background:' + dot + '"></div>' +
+      '<div class="signal-label">' + sig.name + ' <span class="ops-tag ' + sig.tagClass + '">' + sig.tag + '</span></div>' +
+      '<div class="signal-val" style="color:' + valC + '">' + val + '</div>' +
+    '</div>';
+  }
+  document.getElementById('layer2-signals').innerHTML = l2Html;
+
+  // Recommendation
+  document.getElementById('rec-card').style.background  = recBg;
+  document.getElementById('rec-card').style.borderColor = recBorder;
+  document.getElementById('rec-title').style.color = recColor;
+  var recHtml = '';
+  for (var b = 0; b < bullets.length; b++) recHtml += '<li>' + bullets[b] + '</li>';
+  document.getElementById('rec-list').innerHTML = recHtml;
+
+  // Show result
+  document.getElementById('spinner').classList.remove('show');
+  document.getElementById('result-section').style.display = 'block';
+
+  // Animate bars
+  setTimeout(function() {
+    var bar = document.getElementById('sh-bar');
+    bar.style.background = barColor;
+    bar.style.width = finalPct + '%';
+    var fills = document.querySelectorAll('.cr-bar-fill');
+    for (var f = 0; f < fills.length; f++) {
+      fills[f].style.width = fills[f].getAttribute('data-w') + '%';
+    }
+  }, 120);
+
+  document.getElementById('result-section').scrollIntoView({ behavior:'smooth', block:'start' });
+}
+
+/* ════════════════════════════════════════════════════════
+   RESET
+════════════════════════════════════════════════════════ */
+function resetForm() {
+  document.getElementById('uc-title').value = '';
+  document.getElementById('uc-desc').value  = '';
+  document.getElementById('result-section').style.display = 'none';
+  document.getElementById('clarify-section').style.display = 'none';
+  document.getElementById('input-section').style.display  = 'block';
+  document.getElementById('sh-bar').style.width = '0%';
+
+  // Reset dynamic question state
+  currentAnswers = {};
+  currentQuestions = [];
+  document.getElementById('clarify-questions-container').innerHTML = '';
+  document.getElementById('calc-btn').disabled = true;
+
+  renderHistory();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+/* ════════════════════════════════════════════════════════
+   HISTORY — localStorage key: ai_scorer_history_<email>
+   Falls back to anonymous key when running locally
+════════════════════════════════════════════════════════ */
+var HISTORY_KEY = 'ai_scorer_history';
+var HISTORY_MAX = 20;
+var historyVisible = true;
+
+function loadHistoryData() {
+  try {
+    var raw = localStorage.getItem(HISTORY_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch(e) { return []; }
+}
+
+function saveHistory(record) {
+  var list = loadHistoryData();
+  list.unshift(record); // newest first
+  if (list.length > HISTORY_MAX) list = list.slice(0, HISTORY_MAX);
+  try { localStorage.setItem(HISTORY_KEY, JSON.stringify(list)); } catch(e) {}
+}
+
+function clearHistory() {
+  if (!confirm('Clear all evaluation history?')) return;
+  try { localStorage.removeItem(HISTORY_KEY); } catch(e) {}
+  renderHistory();
+}
+
+function toggleHistory() {
+  historyVisible = !historyVisible;
+  document.getElementById('history-list-wrap').style.display = historyVisible ? 'block' : 'none';
+  document.getElementById('history-toggle-label').textContent = historyVisible ? '▲ Hide' : '▼ Show';
+}
+
+function verdictColor(pct) {
+  if (pct >= 72) return { bg: 'rgba(46,204,113,0.15)', text: '#2ECC71' };
+  if (pct >= 50) return { bg: 'rgba(243,156,18,0.15)',  text: '#F39C12' };
+  if (pct >= 30) return { bg: 'rgba(74,144,217,0.15)',  text: '#4A90D9' };
+  return               { bg: 'rgba(206,147,216,0.15)', text: '#CE93D8' };
+}
+
+function formatDate(iso) {
+  try {
+    var d = new Date(iso);
+    return d.toLocaleDateString(undefined, { day:'numeric', month:'short', year:'numeric' });
+  } catch(e) { return ''; }
+}
+
+function renderHistory() {
+  var list = loadHistoryData();
+  var sec  = document.getElementById('history-section');
+  var wrap = document.getElementById('history-list');
+
+  if (list.length === 0) {
+    sec.style.display = 'none';
+    return;
+  }
+
+  sec.style.display = 'block';
+  var html = '';
+  for (var i = 0; i < list.length; i++) {
+    var item = list[i];
+    var col = verdictColor(item.finalPct);
+    html += '<div class="history-item" onclick="loadHistoryResult(' + item.id + ')">' +
+      '<div class="h-score-badge" style="background:' + col.bg + ';color:' + col.text + '">' + item.finalPct + '%</div>' +
+      '<div class="h-body">' +
+        '<div class="h-title">' + escHtml(item.title) + '</div>' +
+        '<div class="h-meta">' +
+          '<span class="h-verdict-chip" style="background:' + col.bg + ';color:' + col.text + ';border:1px solid ' + col.text + '33">' + escHtml(item.verdict) + '</span>' +
+          '<span class="h-date">' + formatDate(item.savedAt) + '</span>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+  }
+  wrap.innerHTML = html;
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function loadHistoryResult(id) {
+  var list = loadHistoryData();
+  var item = null;
+  for (var i = 0; i < list.length; i++) { if (list[i].id === id) { item = list[i]; break; } }
+  if (!item) return;
+
+  // Populate inputs (read-only view)
+  document.getElementById('uc-title').value = item.title || '';
+  document.getElementById('uc-desc').value  = item.description || '';
+
+  // Hide other sections, show spinner briefly then result
+  document.getElementById('input-section').style.display   = 'none';
+  document.getElementById('clarify-section').style.display = 'none';
+  document.getElementById('result-section').style.display  = 'none';
+  document.getElementById('spinner').classList.add('show');
+  document.getElementById('spinner-text').textContent = 'Loading saved result…';
+
+  setTimeout(function() {
+    document.getElementById('spinner').classList.remove('show');
+    renderResults(
+      item.finalPct, item.verdict, item.sub,
+      item.heroBg, item.barColor,
+      item.recBg, item.recBorder, item.recColor,
+      item.bullets, item.l1, item.l2
+    );
+  }, 400);
+}
+
+/* ════════════════════════════════════════════════════════
+   INIT — fetch user identity, then render history
+════════════════════════════════════════════════════════ */
+function initUser() {
+  fetch('/user-api/currentUser')
+    .then(function(res) { return res.json(); })
+    .then(function(user) {
+      var email = (user.email || '').toLowerCase();
+      if (email) {
+        HISTORY_KEY = 'ai_scorer_history_' + email;
+        // Show user chip
+        var firstName = user.firstName || '';
+        var lastName  = (user.lastName  || '').charAt(0);
+        var displayName = firstName + (lastName ? ' ' + lastName + '.' : '');
+        var initials = (firstName.charAt(0) + (user.lastName || '').charAt(0)).toUpperCase();
+        document.getElementById('user-avatar').textContent = initials || '?';
+        document.getElementById('user-name').textContent   = displayName || email;
+        document.getElementById('user-chip').style.display = 'flex';
+      }
+    })
+    .catch(function() {
+      // Running locally or endpoint unavailable — use anonymous key
+    })
+    .finally(function() {
+      renderHistory();
+    });
+}
+
+initUser();
+</script>
+</body>
+</html>

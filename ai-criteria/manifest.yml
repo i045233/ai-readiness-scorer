@@ -1,0 +1,13 @@
+---
+applications:
+  - name: usecase-evaluator
+    memory: 64M
+    disk_quota: 128M
+    instances: 1
+    buildpacks:
+      - staticfile_buildpack
+    path: .
+    routes:
+      - route: usecase-evaluator.cfapps.eu12.hana.ondemand.com
+    services:
+      - usecase-evaluator-uaa

@@ -1,0 +1,6 @@
+{
+  "xsappname": "usecase-evaluator",
+  "tenant-mode": "dedicated",
+  "scopes": [],
+  "role-templates": []
+}

@@ -1,0 +1,15 @@
+---
+applications:
+  - name: usecase-evaluator-app
+    memory: 128M
+    instances: 1
+    buildpacks:
+      - nodejs_buildpack
+    path: .
+    routes:
+      - route: usecase-evaluator-app.cfapps.eu12.hana.ondemand.com
+    env:
+      destinations: >
+        [{"name":"usecase-evaluator-backend","url":"https://usecase-evaluator.cfapps.eu12.hana.ondemand.com","forwardAuthToken":true}]
+    services:
+      - usecase-evaluator-uaa
