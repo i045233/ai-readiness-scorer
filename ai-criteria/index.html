@@ -295,6 +295,80 @@
     }
     .clear-history-btn:hover { color: var(--red); }
 
+    /* ── Deep Dive ── */
+    .deepdive-btn {
+      width: 100%; background: none;
+      border: 1px solid rgba(201,169,110,0.4);
+      border-radius: 12px; padding: 14px; font-size: 14px; font-weight: 700;
+      color: var(--gold); cursor: pointer; font-family: inherit;
+      transition: all 0.15s; margin-bottom: 12px;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+    }
+    .deepdive-btn:hover { background: rgba(201,169,110,0.08); border-color: var(--gold); }
+    .deepdive-btn.loading { opacity: 0.5; cursor: not-allowed; }
+
+    #deepdive-section { display: none; margin-bottom: 12px; }
+    .dd-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 16px; padding: 22px 24px; margin-bottom: 12px;
+    }
+    .dd-card:last-child { margin-bottom: 0; }
+    .dd-card-title {
+      font-size: 11px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase;
+      color: var(--gold); margin-bottom: 16px; display: flex; align-items: center; gap: 8px;
+    }
+    .dd-card-title .dd-icon {
+      width: 22px; height: 22px; border-radius: 7px; flex-shrink: 0;
+      background: rgba(201,169,110,0.12); border: 1px solid rgba(201,169,110,0.2);
+      font-size: 12px; display: flex; align-items: center; justify-content: center;
+    }
+    .dd-approach-name {
+      font-size: 20px; font-weight: 800; color: var(--white); margin-bottom: 6px;
+    }
+    .dd-approach-sub {
+      font-size: 13px; color: var(--grey-lt); line-height: 1.6; margin-bottom: 14px;
+    }
+    .dd-tag-row { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 6px; }
+    .dd-tag {
+      font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 8px;
+      background: rgba(201,169,110,0.1); border: 1px solid rgba(201,169,110,0.2);
+      color: var(--gold-lt);
+    }
+    .dd-arch {
+      background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+      padding: 14px 16px; font-family: 'Inter', monospace; font-size: 12px;
+      color: var(--grey-lt); line-height: 1.8; white-space: pre-wrap; margin-bottom: 0;
+    }
+    .dd-row-list { list-style: none; }
+    .dd-row-list li {
+      display: flex; gap: 10px; align-items: flex-start;
+      font-size: 13px; color: var(--grey-lt); line-height: 1.6;
+      padding: 8px 0; border-bottom: 1px solid var(--border);
+    }
+    .dd-row-list li:last-child { border-bottom: none; padding-bottom: 0; }
+    .dd-row-list li .dd-li-icon { flex-shrink: 0; font-size: 14px; margin-top: 1px; }
+    .dd-metric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    @media (max-width: 500px) { .dd-metric-grid { grid-template-columns: 1fr; } }
+    .dd-metric {
+      background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+      padding: 12px 14px;
+    }
+    .dd-metric-label { font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--grey); margin-bottom: 4px; }
+    .dd-metric-val { font-size: 13px; color: var(--white); line-height: 1.5; }
+    .dd-step-list { list-style: none; counter-reset: dd-step; }
+    .dd-step-list li {
+      counter-increment: dd-step; display: flex; gap: 12px; align-items: flex-start;
+      font-size: 13px; color: var(--grey-lt); line-height: 1.6;
+      padding: 10px 0; border-bottom: 1px solid var(--border);
+    }
+    .dd-step-list li:last-child { border-bottom: none; padding-bottom: 0; }
+    .dd-step-num {
+      width: 22px; height: 22px; border-radius: 7px; flex-shrink: 0;
+      background: rgba(201,169,110,0.12); border: 1px solid rgba(201,169,110,0.2);
+      color: var(--gold); font-size: 11px; font-weight: 800;
+      display: flex; align-items: center; justify-content: center;
+    }
+
     /* ── User chip ── */
     .user-chip {
       position: fixed; top: 16px; right: 20px; z-index: 100;
@@ -513,6 +587,13 @@
       <div class="rec-title" id="rec-title">Recommendation</div>
       <ul class="rec-list" id="rec-list"></ul>
     </div>
+
+    <button class="deepdive-btn" id="deepdive-btn" onclick="generateDeepDive()">
+      ✦ Generate Deep Dive
+    </button>
+
+    <!-- Deep Dive output -->
+    <div id="deepdive-section"></div>
 
     <button class="reset-btn" onclick="resetForm()">← Evaluate Another Use Case</button>
   </div>
@@ -1182,6 +1263,9 @@ function runScoring() {
         savedAt: new Date().toISOString(),
       });
 
+      // Store context for deep dive
+      lastDeepDiveCtx = { title: title, desc: desc, l1: l1, l2: l2, answers: currentAnswers, finalPct: finalPct };
+
       renderResults(finalPct, verdict, sub, heroBg, barColor, recBg, recBorder, recColor, bullets, l1, l2);
 
     } catch(err) {
@@ -1278,6 +1362,16 @@ function resetForm() {
   currentQuestions = [];
   document.getElementById('clarify-questions-container').innerHTML = '';
   document.getElementById('calc-btn').disabled = true;
+
+  // Reset deep dive
+  lastDeepDiveCtx = null;
+  var ddSec = document.getElementById('deepdive-section');
+  ddSec.innerHTML = '';
+  ddSec.style.display = 'none';
+  var ddBtn = document.getElementById('deepdive-btn');
+  ddBtn.style.display = 'flex';
+  ddBtn.classList.remove('loading');
+  ddBtn.innerHTML = '✦ Generate Deep Dive';
 
   renderHistory();
   window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -1383,6 +1477,13 @@ function loadHistoryResult(id) {
 
   setTimeout(function() {
     document.getElementById('spinner').classList.remove('show');
+    // Set context for deep dive from history item
+    lastDeepDiveCtx = { title: item.title, desc: item.description || '', l1: item.l1, l2: item.l2, answers: item.answers || {}, finalPct: item.finalPct };
+    var ddSec = document.getElementById('deepdive-section');
+    ddSec.innerHTML = ''; ddSec.style.display = 'none';
+    var ddBtn = document.getElementById('deepdive-btn');
+    ddBtn.style.display = 'flex'; ddBtn.classList.remove('loading');
+    ddBtn.innerHTML = '✦ Generate Deep Dive';
     renderResults(
       item.finalPct, item.verdict, item.sub,
       item.heroBg, item.barColor,
@@ -1390,6 +1491,480 @@ function loadHistoryResult(id) {
       item.bullets, item.l1, item.l2
     );
   }, 400);
+}
+
+/* ════════════════════════════════════════════════════════
+   DEEP DIVE GENERATOR
+   Uses title, description, L1 scores, L2 signals, and
+   clarifying answers to produce a tailored technical
+   deep dive entirely client-side.
+════════════════════════════════════════════════════════ */
+
+/* Stored context from last scoring run, used by deep dive */
+var lastDeepDiveCtx = null;
+
+function generateDeepDive() {
+  if (!lastDeepDiveCtx) return;
+  var btn = document.getElementById('deepdive-btn');
+  btn.classList.add('loading');
+  btn.textContent = 'Generating…';
+
+  // Simulate brief thinking delay for UX
+  setTimeout(function() {
+    var html = buildDeepDive(lastDeepDiveCtx);
+    var sec = document.getElementById('deepdive-section');
+    sec.innerHTML = html;
+    sec.style.display = 'block';
+    btn.style.display = 'none';
+    sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, 800);
+}
+
+function buildDeepDive(ctx) {
+  var t    = (ctx.title + ' ' + ctx.desc).toLowerCase();
+  var l1   = ctx.l1;
+  var l2   = ctx.l2;
+  var ans  = ctx.answers;
+  var pct  = ctx.finalPct;
+
+  /* ── 1. Pick AI approach ── */
+  var approach = pickApproach(t, l1, l2, ans, pct);
+  /* ── 2. Build architecture sketch ── */
+  var arch = buildArch(t, approach, l1, l2);
+  /* ── 3. Risks & mitigations ── */
+  var risks = buildRisks(t, l1, l2, ans, pct);
+  /* ── 4. Success metrics ── */
+  var metrics = buildMetrics(t, l1, l2, pct);
+  /* ── 5. What to build first ── */
+  var steps = buildFirstSteps(t, l1, l2, ans, pct, approach);
+
+  var html = '';
+
+  /* Card 1 — Approach */
+  html += '<div class="dd-card">' +
+    '<div class="dd-card-title"><div class="dd-icon">⚡</div>Recommended AI Approach</div>' +
+    '<div class="dd-approach-name">' + approach.name + '</div>' +
+    '<div class="dd-approach-sub">' + approach.why + '</div>' +
+    '<div class="dd-tag-row">';
+  for (var i = 0; i < approach.tags.length; i++) html += '<span class="dd-tag">' + approach.tags[i] + '</span>';
+  html += '</div></div>';
+
+  /* Card 2 — Architecture */
+  html += '<div class="dd-card">' +
+    '<div class="dd-card-title"><div class="dd-icon">🏗</div>Architecture Sketch</div>' +
+    '<div class="dd-arch">' + escHtml(arch) + '</div>' +
+    '</div>';
+
+  /* Card 3 — Risks */
+  html += '<div class="dd-card">' +
+    '<div class="dd-card-title"><div class="dd-icon">⚠</div>Key Risks &amp; Mitigations</div>' +
+    '<ul class="dd-row-list">';
+  for (var r = 0; r < risks.length; r++) {
+    html += '<li><span class="dd-li-icon">⚠</span><div><strong style="color:var(--white)">' +
+      escHtml(risks[r].risk) + '</strong><br>' + escHtml(risks[r].mitigation) + '</div></li>';
+  }
+  html += '</ul></div>';
+
+  /* Card 4 — Success Metrics */
+  html += '<div class="dd-card">' +
+    '<div class="dd-card-title"><div class="dd-icon">📊</div>What Good Looks Like — Success Metrics</div>' +
+    '<div class="dd-metric-grid">';
+  for (var m = 0; m < metrics.length; m++) {
+    html += '<div class="dd-metric">' +
+      '<div class="dd-metric-label">' + escHtml(metrics[m].label) + '</div>' +
+      '<div class="dd-metric-val">' + escHtml(metrics[m].val) + '</div>' +
+      '</div>';
+  }
+  html += '</div></div>';
+
+  /* Card 5 — First steps */
+  html += '<div class="dd-card">' +
+    '<div class="dd-card-title"><div class="dd-icon">🚀</div>What to Build First</div>' +
+    '<ol class="dd-step-list">';
+  for (var s = 0; s < steps.length; s++) {
+    html += '<li><div class="dd-step-num">' + (s+1) + '</div><div>' +
+      '<strong style="color:var(--white)">' + escHtml(steps[s].title) + '</strong><br>' +
+      escHtml(steps[s].detail) + '</div></li>';
+  }
+  html += '</ol></div>';
+
+  return html;
+}
+
+/* ── Approach picker ── */
+function pickApproach(t, l1, l2, ans, pct) {
+  var isMigration  = /migrat|replatform|convert|port\b|porting/.test(t);
+  var isOps        = /incident|alert|ops|on.call|pager|monitor|outage/.test(t);
+  var isTicket     = /ticket|support|triage|backlog|queue|jira/.test(t);
+  var isDoc        = /document|pdf|invoice|contract|report|note/.test(t);
+  var isSearch     = /search|retriev|lookup|find|knowledge base|faq/.test(t);
+  var isCode       = /code|script|sql|ddl|query|refactor|generat.{0,15}code/.test(t);
+  var isAnalytics  = /forecast|predict|anomal|trend|insight|dashboard/.test(t);
+  var isNLP        = /email|chat|feedback|sentiment|intent|classif|summar/.test(t);
+  var highComplex  = l1.complexity >= 3;
+  var highVar      = l1.variability >= 3;
+  var lowError     = l1.error_tol <= 1;
+  var hasData      = l1.data >= 3;
+  var hasCrossys   = l2.crosssys;
+  var hasTribal    = l2.tribal;
+
+  if (isMigration && isCode) {
+    return {
+      name: 'LLM-Assisted Code Translation Pipeline',
+      why: 'Your use case involves transforming structured or semi-structured code/schema artefacts. An LLM pipeline — prompt-per-object with a deterministic validator — handles the variability while keeping each output auditable. Human review gates catch edge cases before they reach production.',
+      tags: ['LLM (GPT-4 / Claude)', 'Prompt Engineering', 'Chain-of-Thought', 'Human-in-the-Loop', 'Batch Processing'],
+    };
+  }
+  if (isSearch || hasTribal) {
+    return {
+      name: 'RAG — Retrieval-Augmented Generation',
+      why: 'Your use case benefits from grounding answers in your existing documentation, tickets, or knowledge base. RAG combines a vector search over your corpus with an LLM that synthesises the retrieved context into a clear answer — making tribal knowledge queryable without hallucination risk.',
+      tags: ['Vector DB (e.g. HANA Vector, Pinecone)', 'Embedding Model', 'LLM for synthesis', 'Chunking & Indexing', 'Semantic Search'],
+    };
+  }
+  if (isOps && l2.timesens) {
+    return {
+      name: 'LLM Copilot + Rule-Based Auto-Routing',
+      why: 'Time-sensitive ops scenarios need fast triage. A rule engine handles the well-known patterns immediately; the LLM copilot takes over for ambiguous or novel situations and drafts a recommended action for the on-call engineer to confirm — keeping humans in control at the critical moment.',
+      tags: ['LLM Copilot', 'Rule Engine (fast path)', 'Alert Correlation', 'Human Escalation', 'Real-Time'],
+    };
+  }
+  if (isTicket || (isNLP && l2.signal_noise)) {
+    return {
+      name: 'LLM-Based Classification & Routing',
+      why: 'Freeform ticket or message triage maps well to LLM zero-shot classification. The model reads the full text, assigns category, priority, and team routing — replacing brittle keyword rules with contextual understanding that handles edge cases and novel phrasings gracefully.',
+      tags: ['LLM Classification', 'Zero-shot / Few-shot', 'Structured Output', 'Confidence Threshold', 'Fallback to Human'],
+    };
+  }
+  if (isAnalytics) {
+    return {
+      name: 'Predictive ML + LLM Narrative Layer',
+      why: 'Forecasting or anomaly detection on structured data is best handled by a trained ML model (gradient boosting, time-series model). An LLM sits on top to translate model outputs into plain-language summaries and actionable insights for non-technical stakeholders.',
+      tags: ['Supervised ML / Time-Series', 'Feature Engineering', 'LLM Narration Layer', 'Explainability', 'Scheduled Inference'],
+    };
+  }
+  if (isDoc) {
+    return {
+      name: 'Document Intelligence Pipeline',
+      why: 'Processing variable documents — invoices, contracts, reports — calls for a multi-stage pipeline: extract text (OCR if needed), chunk and classify sections, then use an LLM to extract structured fields or generate summaries. Output feeds a structured store for downstream use.',
+      tags: ['OCR / PDF Parsing', 'LLM Extraction', 'Structured Output', 'Schema Validation', 'Confidence Scoring'],
+    };
+  }
+  if (isCode && !isMigration) {
+    return {
+      name: 'LLM Code Generation / Review Agent',
+      why: 'Code generation, review, or refactoring tasks fit LLMs well — especially with context about your codebase structure. A RAG layer over your repo gives the model the right context, while output validation (linting, tests) provides a safety net before any generated code reaches production.',
+      tags: ['LLM + RAG over codebase', 'Code Linting / Test Gate', 'Repo Context Injection', 'Diff Review', 'IDE / CI Integration'],
+    };
+  }
+  if (highComplex && highVar) {
+    return {
+      name: 'Agentic LLM Workflow',
+      why: 'High complexity combined with variable input suggests a multi-step reasoning task where a single prompt isn\'t enough. An agent loop — planning, tool calls, reflection — lets the model decompose the problem, gather context from tools, and produce a verified output before surfacing it to users.',
+      tags: ['LLM Agent (ReAct / CoT)', 'Tool Calling', 'Multi-Step Reasoning', 'Structured Output', 'Human Oversight Gate'],
+    };
+  }
+  if (pct < 40) {
+    return {
+      name: 'Process Automation + Rules First',
+      why: 'The scoring signals suggest AI may be premature. A well-designed workflow automation or rule engine would deliver faster and more predictably. Once the process is well-defined and data starts accumulating, a narrow ML model can be layered in for the highest-variability sub-tasks.',
+      tags: ['Workflow Automation', 'Rule Engine', 'Structured Data', 'Optional ML Later', 'Incremental Approach'],
+    };
+  }
+  return {
+    name: 'LLM-Powered Assistant with Structured Output',
+    why: 'A general-purpose LLM with well-designed prompts and structured JSON output covers the majority of the signals here. Start with a prompt-based MVP to validate accuracy against real inputs before committing to fine-tuning or a more complex architecture.',
+    tags: ['LLM (GPT-4 / Claude)', 'Prompt Engineering', 'JSON Structured Output', 'Evaluation Framework', 'Human-in-the-Loop'],
+  };
+}
+
+/* ── Architecture sketch ── */
+function buildArch(t, approach, l1, l2) {
+  var isMigration = /migrat|replatform|convert/.test(t);
+  var isSearch    = /search|retriev|knowledge|faq/.test(t);
+  var isTicket    = /ticket|triage|support|alert/.test(t);
+  var isDoc       = /document|pdf|invoice|contract/.test(t);
+  var isCode      = /code|script|sql|ddl/.test(t);
+
+  if (isSearch || /RAG/.test(approach.name)) {
+    return [
+      'User Query',
+      '    │',
+      '    ▼',
+      '[ Embedding Model ]  ──→  Query Vector',
+      '    │',
+      '    ▼',
+      '[ Vector Store ]  ──→  Top-K Relevant Chunks',
+      '    │',
+      '    ▼',
+      '[ LLM ]  (query + retrieved context)',
+      '    │',
+      '    ▼',
+      '[ Structured Response ]  ──→  UI / API',
+    ].join('\n');
+  }
+  if (isMigration || isCode) {
+    return [
+      '[ Source Objects ]  (code / schema / config)',
+      '    │',
+      '    ▼',
+      '[ Pre-processor ]  ──→  Normalised Input',
+      '    │',
+      '    ▼',
+      '[ LLM + Prompt Template ]  ──→  Translated Output',
+      '    │',
+      '    ▼',
+      '[ Validator / Linter ]  ──→  Pass / Fail + Diff',
+      '    │',
+      '    ├──→  Auto-Accept  (high confidence)',
+      '    └──→  Human Review (low confidence / fail)',
+    ].join('\n');
+  }
+  if (isTicket || l2.signal_noise) {
+    return [
+      '[ Incoming Ticket / Alert / Message ]',
+      '    │',
+      '    ▼',
+      '[ Rule Engine ]  ──→  Known patterns  ──→  Auto-Route',
+      '    │',
+      '    │  (unknown / ambiguous)',
+      '    ▼',
+      '[ LLM Classifier ]  ──→  Category + Priority + Team',
+      '    │',
+      '    ├──→  High confidence  ──→  Auto-assign',
+      '    └──→  Low confidence   ──→  Human triage queue',
+    ].join('\n');
+  }
+  if (isDoc) {
+    return [
+      '[ Document Input ]  (PDF / scan / email)',
+      '    │',
+      '    ▼',
+      '[ OCR / Parser ]  ──→  Raw Text',
+      '    │',
+      '    ▼',
+      '[ Chunker + Section Classifier ]',
+      '    │',
+      '    ▼',
+      '[ LLM Extraction ]  ──→  Structured JSON Fields',
+      '    │',
+      '    ├──→  Schema Validation  ──→  Pass  ──→  Store',
+      '    └──→  Validation Fail    ──→  Human Review',
+    ].join('\n');
+  }
+  if (l2.crosssys) {
+    return [
+      '[ Source Systems ]  (Jira / GitHub / Logs / DB)',
+      '    │',
+      '    ▼',
+      '[ Data Collector / Connector Layer ]',
+      '    │',
+      '    ▼',
+      '[ Context Builder ]  ──→  Unified Prompt Context',
+      '    │',
+      '    ▼',
+      '[ LLM Reasoning ]  ──→  Cross-system Insight / Action',
+      '    │',
+      '    ▼',
+      '[ Output ]  ──→  Dashboard / Alert / Ticket / API',
+    ].join('\n');
+  }
+  return [
+    '[ User / System Input ]',
+    '    │',
+    '    ▼',
+    '[ Input Validation + Pre-processing ]',
+    '    │',
+    '    ▼',
+    '[ LLM ]  (System Prompt + Context + Input)',
+    '    │',
+    '    ▼',
+    '[ Structured Output Parser ]',
+    '    │',
+    '    ├──→  High confidence  ──→  Action / Response',
+    '    └──→  Low confidence   ──→  Human review queue',
+  ].join('\n');
+}
+
+/* ── Risks & mitigations ── */
+function buildRisks(t, l1, l2, ans, pct) {
+  var risks = [];
+  var isMigration = /migrat|replatform|convert/.test(t);
+
+  if (l1.error_tol <= 2) {
+    risks.push({
+      risk: 'Low error tolerance — wrong outputs cause real harm',
+      mitigation: 'Implement a mandatory confidence threshold: route anything below 80% confidence to a human review queue. Never let the model take irreversible actions autonomously.',
+    });
+  }
+  if (l1.data <= 2) {
+    risks.push({
+      risk: 'Insufficient training or grounding data',
+      mitigation: 'Run a data audit before building. Even a few dozen well-curated examples dramatically improve prompt reliability. Consider synthetic data generation or few-shot examples to bootstrap.',
+    });
+  }
+  if (l1.complexity >= 3) {
+    risks.push({
+      risk: 'High complexity leads to inconsistent outputs',
+      mitigation: 'Break the task into smaller, well-defined sub-tasks each with their own prompt and validation step. Avoid asking the model to do too much in a single call.',
+    });
+  }
+  if (l2.crosssys) {
+    risks.push({
+      risk: 'Cross-system data inconsistency corrupts context',
+      mitigation: 'Invest in a normalisation layer before data reaches the model. Garbage-in, garbage-out is amplified when the model confidently synthesises incorrect source data.',
+    });
+  }
+  if (isMigration) {
+    risks.push({
+      risk: 'Edge cases in source system not covered by prompts',
+      mitigation: 'Maintain a living exception catalogue. Any object the model cannot handle with high confidence gets flagged for human review and added to the prompt library as a few-shot example.',
+    });
+  }
+  if (l2.timesens) {
+    risks.push({
+      risk: 'Latency in LLM response unacceptable for real-time ops',
+      mitigation: 'Pre-compute embeddings and cache common patterns. Use a fast rule engine as the first pass for known cases — only invoke the LLM for novel or ambiguous situations.',
+    });
+  }
+  if (l1.cost_val <= 2) {
+    risks.push({
+      risk: 'ROI unclear — AI overhead may not be justified',
+      mitigation: 'Define a measurable baseline (current time/cost per task) before building. Set a concrete ROI threshold at the 60-day pilot checkpoint to decide whether to continue.',
+    });
+  }
+  if (risks.length === 0) {
+    risks.push({
+      risk: 'Model drift as inputs evolve over time',
+      mitigation: 'Schedule quarterly prompt reviews and track output quality metrics continuously. Set up a feedback loop where users can flag incorrect outputs for retraining.',
+    });
+  }
+  return risks.slice(0, 4);
+}
+
+/* ── Success metrics ── */
+function buildMetrics(t, l1, l2, pct) {
+  var metrics = [];
+  var isTicket    = /ticket|triage|support/.test(t);
+  var isOps       = /incident|alert|ops|monitor/.test(t);
+  var isMigration = /migrat|replatform|convert/.test(t);
+  var isDoc       = /document|pdf|invoice|contract/.test(t);
+  var isSearch    = /search|retriev|knowledge/.test(t);
+
+  if (isMigration) {
+    metrics = [
+      { label: 'Conversion Accuracy', val: '≥ 95% of objects pass validation without manual edit' },
+      { label: 'Throughput', val: '10× faster than manual conversion per object' },
+      { label: 'Edge Case Rate', val: '< 5% of objects require human review' },
+      { label: 'Rollback Incidents', val: 'Zero production issues from AI-converted artefacts in first 30 days' },
+    ];
+  } else if (isTicket) {
+    metrics = [
+      { label: 'Triage Accuracy', val: '≥ 90% correct category + team assignment' },
+      { label: 'Response Time', val: 'P90 triage latency < 30 seconds' },
+      { label: 'Escalation Rate', val: '< 15% of tickets escalated back to human triage' },
+      { label: 'Engineer Time Saved', val: '≥ 2 hours/engineer/week freed from manual sorting' },
+    ];
+  } else if (isOps) {
+    metrics = [
+      { label: 'MTTR Improvement', val: '≥ 30% reduction in mean time to resolution' },
+      { label: 'False Positive Rate', val: '< 10% of AI-suggested actions are incorrect' },
+      { label: 'Alert Noise Reduction', val: '≥ 40% fewer manual alert reviews per engineer' },
+      { label: 'Incident Recurrence', val: 'Repeat root-cause incidents down ≥ 25% in 90 days' },
+    ];
+  } else if (isDoc) {
+    metrics = [
+      { label: 'Extraction Accuracy', val: '≥ 95% field-level accuracy vs manual extraction' },
+      { label: 'Processing Time', val: '< 5 seconds per document end-to-end' },
+      { label: 'Human Override Rate', val: '< 8% of documents need manual correction' },
+      { label: 'Straight-through Rate', val: '≥ 85% of documents processed without human touch' },
+    ];
+  } else if (isSearch) {
+    metrics = [
+      { label: 'Retrieval Relevance', val: 'Top-3 results contain the answer ≥ 85% of the time' },
+      { label: 'User Satisfaction', val: '≥ 4/5 average rating on answer quality' },
+      { label: 'Escalation Rate', val: '< 20% of queries escalate to human expert' },
+      { label: 'Knowledge Coverage', val: '≥ 90% of FAQ topics covered after first indexing run' },
+    ];
+  } else {
+    metrics = [
+      { label: 'Output Quality', val: '≥ 85% of outputs rated acceptable by subject matter experts' },
+      { label: 'Time Saved', val: '≥ 50% reduction in manual effort for this task' },
+      { label: 'Error Rate', val: '< 10% of outputs require human correction' },
+      { label: 'Adoption', val: '≥ 80% of target users actively using the tool after 60 days' },
+    ];
+  }
+  return metrics;
+}
+
+/* ── First steps ── */
+function buildFirstSteps(t, l1, l2, ans, pct, approach) {
+  var isMigration = /migrat|replatform|convert/.test(t);
+  var isOps       = /incident|alert|ops|monitor/.test(t);
+  var isSearch    = /search|retriev|knowledge/.test(t);
+  var lowData     = l1.data <= 2;
+  var highRisk    = l1.error_tol <= 1;
+  var hasCrossSys = l2.crosssys;
+
+  var steps = [];
+
+  if (lowData) {
+    steps.push({
+      title: 'Data audit — know what you have',
+      detail: 'Before writing a line of code, catalogue available data sources. Count examples, assess quality, identify gaps. This single step determines feasibility and shapes every decision that follows.',
+    });
+  }
+
+  steps.push({
+    title: 'Define the ground truth dataset',
+    detail: 'Curate 50–200 representative examples with human-labelled correct outputs. This becomes your eval set — the only honest measure of whether the model is actually working.',
+  });
+
+  if (isMigration) {
+    steps.push({
+      title: 'Classify your object inventory',
+      detail: 'Group source objects by structural pattern. Start with the most common, well-understood pattern (highest volume, lowest variance). Build and validate the prompt for that pattern first before tackling edge cases.',
+    });
+  } else if (isSearch) {
+    steps.push({
+      title: 'Build and index your knowledge corpus',
+      detail: 'Collect, clean, and chunk your source documents. Run a first embedding pass into a vector store. Manually query 20 representative questions to validate retrieval quality before adding the LLM layer.',
+    });
+  } else if (isOps) {
+    steps.push({
+      title: 'Shadow mode deployment',
+      detail: 'Run the AI model in parallel with existing processes for 2 weeks — it produces outputs but no action is taken automatically. Compare its suggestions against what engineers actually did. Use the delta to refine prompts and thresholds.',
+    });
+  } else {
+    steps.push({
+      title: 'Build the smallest possible end-to-end slice',
+      detail: 'Pick the single highest-volume, most clearly defined sub-task. Get one flow working end-to-end (input → model → validated output → user) before expanding scope. Avoid building infrastructure before you have a working core.',
+    });
+  }
+
+  steps.push({
+    title: 'Establish an eval loop before going to production',
+    detail: 'Run every prompt change against your ground truth dataset. Track accuracy, false positive rate, and edge case coverage. Never ship a change you haven\'t measured against the eval set.',
+  });
+
+  if (highRisk) {
+    steps.push({
+      title: 'Design the human-in-the-loop handoff explicitly',
+      detail: 'Decide exactly which conditions route to a human, what context the human reviewer sees, and how their decision feeds back into the system. This is not an afterthought — design it before writing the AI logic.',
+    });
+  } else if (hasCrossSys) {
+    steps.push({
+      title: 'Build the data normalisation layer first',
+      detail: 'A cross-system use case lives or dies by data quality. Build a lightweight ETL or connector layer that pulls from all sources into a unified schema before the model ever sees it. Garbage context produces confident wrong answers.',
+    });
+  } else {
+    steps.push({
+      title: 'Set up production monitoring from day one',
+      detail: 'Log every model call, input, output, confidence score, and user feedback. You cannot improve what you cannot observe. A simple logging table and a weekly accuracy review catches drift before it compounds.',
+    });
+  }
+
+  return steps.slice(0, 5);
 }
 
 /* ════════════════════════════════════════════════════════
